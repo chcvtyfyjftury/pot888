@@ -48,6 +48,24 @@ else:
     ADMIN_IDS = [6786975675765675]
 SUPPORT_USER = "@SSOLTAAANNN"
 
+# ==================== إعدادات قناة الاشتراك الإجباري ====================
+CHANNEL_USERNAME = "@NITRO_SMS_Channel"
+CHANNEL_URL = "https://t.me/NITRO_SMS_Channel"
+
+# ==================== باقات الاشتراك ====================
+SUBSCRIPTION_PLANS = {
+    "monthly": {"name": "📅 شهرية", "price": "22$", "days": 30, "desc": "30 يوم"},
+    "weekly":  {"name": "📆 أسبوعية", "price": "8$",  "days": 7,  "desc": "7 أيام"},
+    "daily":   {"name": "🗓️ يومية",   "price": "2$",  "days": 1,  "desc": "يوم واحد"},
+}
+
+# ==================== طرق الدفع الافتراضية ====================
+DEFAULT_PAYMENT_METHODS = [
+    ("sham_cash",     "شام كاش",       "", "أرسل المبلغ على الرقم الموضح وأرسل صورة الإيصال."),
+    ("syriatel_cash", "سيريتيل كاش",   "", "أرسل المبلغ على الرقم الموضح وأرسل صورة الإيصال."),
+    ("usdt_bep20",    "USDT BEP20",    "", "أرسل المبلغ على العنوان الموضح وأرسل صورة الإيصال."),
+]
+
 # إعدادات الأداء
 MAX_WORKERS = 50
 CACHE_TTL = 300
@@ -284,6 +302,52 @@ c_main.execute("CREATE INDEX IF NOT EXISTS idx_proxies_user ON proxies(user_id)"
 c_main.execute("CREATE INDEX IF NOT EXISTS idx_user_platform ON user_platform(user_id)")
 c_main.execute("CREATE INDEX IF NOT EXISTS idx_favorites_user ON favorites(user_id)")
 c_main.execute("CREATE INDEX IF NOT EXISTS idx_credential_files_lookup ON credential_files(user_id, platform, game_id)")
+
+# ==================== جداول نظام الاشتراكات ====================
+c_main.execute('''CREATE TABLE IF NOT EXISTS subscriptions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER UNIQUE,
+    plan TEXT,
+    start_date TEXT,
+    end_date TEXT,
+    status TEXT DEFAULT 'active',
+    approved_by INTEGER,
+    approved_at TEXT
+)''')
+
+c_main.execute('''CREATE TABLE IF NOT EXISTS subscription_requests (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
+    username TEXT,
+    name TEXT,
+    plan TEXT,
+    plan_price TEXT,
+    plan_days INTEGER,
+    payment_method TEXT,
+    proof_file_id TEXT,
+    status TEXT DEFAULT 'pending',
+    created_at TEXT,
+    admin_msg_id INTEGER,
+    admin_chat_id INTEGER
+)''')
+
+c_main.execute('''CREATE TABLE IF NOT EXISTS payment_methods (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    method_key TEXT UNIQUE,
+    display_name TEXT,
+    address TEXT,
+    instructions TEXT,
+    is_active INTEGER DEFAULT 1
+)''')
+
+conn_main.commit()
+
+# تهيئة طرق الدفع الافتراضية إن لم تكن موجودة
+for _mk, _mn, _addr, _inst in DEFAULT_PAYMENT_METHODS:
+    c_main.execute(
+        "INSERT OR IGNORE INTO payment_methods (method_key, display_name, address, instructions) VALUES (?,?,?,?)",
+        (_mk, _mn, _addr, _inst)
+    )
 conn_main.commit()
 
 # ==================== دوال نظام التشغيل ====================
@@ -1219,6 +1283,85 @@ def remove_allowed_user(user_id: int) -> None:
 def get_allowed_users():
     return c_main.execute("SELECT user_id, username, name, added_date FROM allowed_users").fetchall()
 
+# ==================== دوال نظام الاشتراكات ====================
+def has_active_subscription(user_id: int) -> bool:
+    """التحقق من اشتراك نشط وغير منتهٍ"""
+    row = c_main.execute(
+        "SELECT end_date FROM subscriptions WHERE user_id = ? AND status = 'active'",
+        (user_id,)
+    ).fetchone()
+    if not row:
+        return False
+    try:
+        end_date = datetime.fromisoformat(row[0])
+        return datetime.now() < end_date
+    except Exception:
+        return False
+
+def get_subscription_info(user_id: int):
+    """جلب معلومات الاشتراك"""
+    return c_main.execute(
+        "SELECT plan, start_date, end_date, status FROM subscriptions WHERE user_id = ?",
+        (user_id,)
+    ).fetchone()
+
+def activate_subscription(user_id: int, username: str, name: str, plan: str, days: int, approved_by: int) -> None:
+    """تفعيل اشتراك مستخدم"""
+    start = datetime.now()
+    end = start + timedelta(days=days)
+    c_main.execute(
+        """INSERT INTO subscriptions (user_id, plan, start_date, end_date, status, approved_by, approved_at)
+           VALUES (?,?,?,?,?,?,?)
+           ON CONFLICT(user_id) DO UPDATE SET
+             plan=excluded.plan, start_date=excluded.start_date, end_date=excluded.end_date,
+             status='active', approved_by=excluded.approved_by, approved_at=excluded.approved_at""",
+        (user_id, plan, start.isoformat(), end.isoformat(), "active", approved_by, start.isoformat())
+    )
+    # إضافة للمستخدمين المسموح لهم تلقائياً
+    c_main.execute("INSERT OR IGNORE INTO users (user_id, username, name, created_at) VALUES (?,?,?,?)",
+                   (user_id, username, name, start.isoformat()))
+    c_main.execute("UPDATE users SET allowed = 1 WHERE user_id = ?", (user_id,))
+    c_main.execute(
+        "INSERT OR IGNORE INTO allowed_users (user_id, username, name, added_by, added_date) VALUES (?,?,?,?,?)",
+        (user_id, username, name, approved_by, start.isoformat())
+    )
+    conn_main.commit()
+    try:
+        is_allowed_cached.cache_clear()
+    except Exception:
+        pass
+
+def revoke_expired_subscriptions() -> None:
+    """إلغاء الاشتراكات المنتهية"""
+    now = datetime.now().isoformat()
+    expired = c_main.execute(
+        "SELECT user_id FROM subscriptions WHERE status='active' AND end_date < ?", (now,)
+    ).fetchall()
+    for (uid,) in expired:
+        c_main.execute("UPDATE subscriptions SET status='expired' WHERE user_id=?", (uid,))
+        remove_allowed_user(uid)
+    if expired:
+        conn_main.commit()
+
+def get_active_payment_methods():
+    """جلب طرق الدفع النشطة"""
+    return c_main.execute(
+        "SELECT method_key, display_name, address, instructions FROM payment_methods WHERE is_active=1"
+    ).fetchall()
+
+def get_pending_subscription_requests():
+    return c_main.execute(
+        "SELECT id, user_id, username, name, plan, plan_price, payment_method, proof_file_id, created_at FROM subscription_requests WHERE status='pending'"
+    ).fetchall()
+
+async def check_channel_membership(bot, user_id: int) -> bool:
+    """التحقق من اشتراك المستخدم في القناة الإجبارية"""
+    try:
+        member = await bot.get_chat_member(chat_id=CHANNEL_USERNAME, user_id=user_id)
+        return member.status in ["member", "administrator", "creator"]
+    except Exception:
+        return False
+
 def get_all_games_af():
     cached = cache_get("games_af")
     if cached:
@@ -1902,29 +2045,75 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
     uname = update.effective_user.username or ""
     name = update.effective_user.first_name or ""
-    
+
+    # ── 1) التحقق من الاشتراك في القناة الإجبارية ──
+    is_member = await check_channel_membership(update.get_bot(), uid)
+    if not is_member:
+        kb = [
+            [InlineKeyboardButton("📢 اشترك في القناة", url=CHANNEL_URL)],
+            [InlineKeyboardButton("✅ تحقق من الاشتراك", callback_data="verify_channel_sub")],
+        ]
+        await update.message.reply_text(
+            f"📢 *للمتابعة يجب الاشتراك في قناتنا أولاً!*\n\n"
+            f"اشترك في القناة ثم اضغط *تحقق من الاشتراك*\n\n"
+            f"القناة: {CHANNEL_URL}",
+            reply_markup=InlineKeyboardMarkup(kb),
+            parse_mode="Markdown"
+        )
+        return
+
+    # ── 2) تسجيل المستخدم في قاعدة البيانات ──
     c_main.execute("INSERT OR IGNORE INTO users (user_id, username, name, created_at) VALUES (?, ?, ?, ?)",
                    (uid, uname, name, datetime.now().isoformat()))
     c_main.execute("INSERT OR IGNORE INTO user_platform (user_id, platform) VALUES (?, ?)", (uid, "android"))
     conn_main.commit()
     _sync_user_row(uid)
     supabase_sync.sync_user_platform(uid, get_user_platform(uid))
-    
-    if not is_allowed(uid):
-        await update.message.reply_text(
-            f"🚫 *غير مسموح*\n\nأنت غير مسجل في النظام.\nيرجى التواصل مع المدير.\n\n📞 {SUPPORT_USER} / ",
-            parse_mode="Markdown"
-        )
-        return
-    
+
+    # ── 3) التحقق من الحظر ──
     banned = c_main.execute("SELECT banned FROM users WHERE user_id = ?", (uid,)).fetchone()
     if banned and banned[0] == 1:
         await update.message.reply_text(f"🚫 *أنت محظور*\n\nللتواصل مع الدعم: {SUPPORT_USER}", parse_mode="Markdown")
         return
-    
+
+    # ── 4) الأدمن يدخل مباشرة ──
+    if is_admin(uid):
+        return await _show_main_menu(update.message, uid)
+
+    # ── 5) التحقق من إذن الوصول أو اشتراك نشط ──
+    revoke_expired_subscriptions()
+    if is_allowed(uid) and has_active_subscription(uid):
+        return await _show_main_menu(update.message, uid)
+
+    if is_allowed(uid) and not has_active_subscription(uid):
+        # مستخدم مضاف يدوياً بدون اشتراك → يدخل مباشرة
+        return await _show_main_menu(update.message, uid)
+
+    # ── 6) المستخدم غير مسجل → عرض خيارات الاشتراك ──
+    await _show_not_registered(update.message, uid)
+
+
+async def _show_not_registered(message, uid: int):
+    """عرض رسالة غير مسجل مع خيارات الاشتراك"""
+    kb = [
+        [InlineKeyboardButton("💳 اشترك الآن", callback_data="sub_plans")],
+    ]
+    await message.reply_text(
+        f"🚫 *غير مسموح*\n\n"
+        f"أنت غير مسجل في النظام.\n"
+        f"يرجى التواصل مع المدير.\n\n"
+        f"📞 {SUPPORT_USER} /\n\n"
+        f"━━━━━━━━━━━━━━━\n"
+        f"💎 *أو اشترك في خدماتنا مباشرةً!*",
+        reply_markup=InlineKeyboardMarkup(kb),
+        parse_mode="Markdown"
+    )
+
+
+async def _show_main_menu(message, uid: int):
+    """عرض القائمة الرئيسية للمستخدم المصرح له"""
     current_platform = get_user_platform(uid)
     platform_emoji = "🤖" if current_platform == "android" else "🍎"
-    
     kb = []
     if is_admin(uid):
         kb.append([InlineKeyboardButton("👑 لوحة التحكم", callback_data="admin_panel")])
@@ -1936,8 +2125,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     kb.append([InlineKeyboardButton("🔧 إعدادات البروكسي", callback_data="proxy_settings")])
     kb.append([InlineKeyboardButton(f"{platform_emoji} نظام التشغيل", callback_data="select_platform")])
     kb.append([InlineKeyboardButton("⭐ المفضلة", callback_data="favorites_menu")])
-    
-    await update.message.reply_text(
+    await message.reply_text(
         f"⚡ *SYNC Jumper Bot* ⚡\n\n"
         f"╭━━━━━━━━━━━━━━━╮\n"
         f"┃ 📱 AppsFlyer\n┃ 📊 Adjust\n┃ 🌟 Singular\n┃ 🌾 مزرعة الجمبرة\n┃ 🔧 بروكسي\n┃ {platform_emoji} النظام: {current_platform.upper()}\n"
@@ -1948,14 +2136,458 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def clean_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """تنظيف شامل وبدء جديد"""
     uid = update.effective_user.id
-    # تنظيف user_data بالكامل
     context.user_data.clear()
-    # ضبط المنصة
     set_user_platform(uid, "android")
     await update.message.reply_text("✅ *تم التنظيف الشامل*\n\nالمنصة: Android\nالبيانات: تم مسحها\n\nاستخدم /start للبدء من جديد", parse_mode="Markdown")
 
 # أضف في main():
     app.add_handler(CommandHandler("clean", clean_start))
+
+# ==================================================================================
+#            ⭐ نظام التحقق من الاشتراك في القناة
+# ==================================================================================
+
+async def verify_channel_sub(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """التحقق من الاشتراك في القناة عند ضغط الزر"""
+    query = update.callback_query
+    await query.answer()
+    uid = query.from_user.id
+
+    is_member = await check_channel_membership(query.get_bot(), uid)
+    if not is_member:
+        kb = [
+            [InlineKeyboardButton("📢 اشترك في القناة", url=CHANNEL_URL)],
+            [InlineKeyboardButton("✅ تحقق من الاشتراك", callback_data="verify_channel_sub")],
+        ]
+        await query.edit_message_text(
+            f"❌ *لم يتم العثور على اشتراكك!*\n\n"
+            f"تأكد أنك اشتركت في القناة ثم اضغط تحقق مجدداً:\n{CHANNEL_URL}",
+            reply_markup=InlineKeyboardMarkup(kb),
+            parse_mode="Markdown"
+        )
+        return
+
+    await query.edit_message_text("✅ *تم التحقق من الاشتراك!*\nاستخدم /start للمتابعة.", parse_mode="Markdown")
+
+
+# ==================================================================================
+#            ⭐ نظام الاشتراكات الكامل
+# ==================================================================================
+
+async def sub_plans(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """عرض باقات الاشتراك"""
+    query = update.callback_query
+    await query.answer()
+    kb = []
+    for key, plan in SUBSCRIPTION_PLANS.items():
+        kb.append([InlineKeyboardButton(
+            f"{plan['name']} ─ {plan['price']} ({plan['desc']})",
+            callback_data=f"sub_select_{key}"
+        )])
+    kb.append([InlineKeyboardButton("🔙 رجوع", callback_data="sub_back")])
+    await query.edit_message_text(
+        "💎 *اختر باقة الاشتراك:*\n\n"
+        "📅 *شهرية* ─ 22$ (30 يوم)\n"
+        "📆 *أسبوعية* ─ 8$ (7 أيام)\n"
+        "🗓️ *يومية* ─ 2$ (يوم واحد)",
+        reply_markup=InlineKeyboardMarkup(kb),
+        parse_mode="Markdown"
+    )
+
+
+async def sub_select_plan(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """اختيار الباقة → عرض طرق الدفع"""
+    query = update.callback_query
+    await query.answer()
+    plan_key = query.data.replace("sub_select_", "")
+    plan = SUBSCRIPTION_PLANS.get(plan_key)
+    if not plan:
+        await query.answer("❌ باقة غير صحيحة", show_alert=True)
+        return
+    context.user_data["sub_plan_key"] = plan_key
+    context.user_data["sub_plan"] = plan
+
+    methods = get_active_payment_methods()
+    if not methods:
+        await query.edit_message_text(
+            "⚠️ *لا توجد طرق دفع متاحة حالياً.*\n\nيرجى التواصل مع الدعم: " + SUPPORT_USER,
+            parse_mode="Markdown"
+        )
+        return
+
+    kb = []
+    for mk, mn, addr, inst in methods:
+        kb.append([InlineKeyboardButton(f"💳 {mn}", callback_data=f"sub_pay_{mk}")])
+    kb.append([InlineKeyboardButton("🔙 رجوع", callback_data="sub_plans")])
+    await query.edit_message_text(
+        f"✅ *الباقة المختارة:* {plan['name']} ─ {plan['price']}\n\n"
+        f"💳 *اختر طريقة الدفع:*",
+        reply_markup=InlineKeyboardMarkup(kb),
+        parse_mode="Markdown"
+    )
+
+
+async def sub_select_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """عرض معلومات الدفع"""
+    query = update.callback_query
+    await query.answer()
+    method_key = query.data.replace("sub_pay_", "")
+
+    row = c_main.execute(
+        "SELECT display_name, address, instructions FROM payment_methods WHERE method_key=?",
+        (method_key,)
+    ).fetchone()
+    if not row:
+        await query.answer("❌ طريقة دفع غير صحيحة", show_alert=True)
+        return
+
+    mn, addr, inst = row
+    plan = context.user_data.get("sub_plan", {})
+    plan_key = context.user_data.get("sub_plan_key", "")
+    context.user_data["sub_method_key"] = method_key
+    context.user_data["sub_method_name"] = mn
+
+    addr_line = f"📌 *العنوان/الرقم:*\n`{addr}`\n\n" if addr else ""
+    kb = [[InlineKeyboardButton("🔙 رجوع", callback_data=f"sub_select_{plan_key}")]]
+    await query.edit_message_text(
+        f"💳 *طريقة الدفع:* {mn}\n"
+        f"📦 *الباقة:* {plan.get('name','—')} ─ {plan.get('price','—')}\n\n"
+        f"{addr_line}"
+        f"📋 *التعليمات:*\n{inst}\n\n"
+        f"━━━━━━━━━━━━━━━\n"
+        f"📸 *أرسل صورة إثبات الدفع الآن* (صورة الإيصال).",
+        reply_markup=InlineKeyboardMarkup(kb),
+        parse_mode="Markdown"
+    )
+    context.user_data["awaiting_proof"] = True
+
+
+async def sub_receive_proof(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """استقبال صورة إثبات الدفع"""
+    if not context.user_data.get("awaiting_proof"):
+        return
+    if not update.message.photo:
+        await update.message.reply_text("📸 يرجى إرسال *صورة* إثبات الدفع.", parse_mode="Markdown")
+        return
+
+    uid = update.effective_user.id
+    uname = update.effective_user.username or ""
+    name = update.effective_user.first_name or ""
+    plan = context.user_data.get("sub_plan", {})
+    plan_key = context.user_data.get("sub_plan_key", "")
+    method_name = context.user_data.get("sub_method_name", "")
+    photo_file_id = update.message.photo[-1].file_id
+
+    # حفظ الطلب
+    now = datetime.now().isoformat()
+    c_main.execute(
+        """INSERT INTO subscription_requests (user_id, username, name, plan, plan_price, plan_days, payment_method, proof_file_id, status, created_at)
+           VALUES (?,?,?,?,?,?,?,?,?,?)""",
+        (uid, uname, name, plan_key, plan.get("price",""), plan.get("days",0), method_name, photo_file_id, "pending", now)
+    )
+    conn_main.commit()
+    req_id = c_main.execute("SELECT last_insert_rowid()").fetchone()[0]
+
+    # إرسال إشعار للأدمنية
+    for admin_id in ADMIN_IDS:
+        try:
+            kb_admin = [
+                [
+                    InlineKeyboardButton("✅ قبول", callback_data=f"sub_approve_{req_id}"),
+                    InlineKeyboardButton("❌ رفض", callback_data=f"sub_reject_{req_id}"),
+                ]
+            ]
+            msg = await update.get_bot().send_photo(
+                chat_id=admin_id,
+                photo=photo_file_id,
+                caption=(
+                    f"📬 *طلب اشتراك جديد #{req_id}*\n\n"
+                    f"👤 *المستخدم:* {name}\n"
+                    f"🆔 *ID:* `{uid}`\n"
+                    f"📛 *يوزرنيم:* @{uname if uname else 'لا يوجد'}\n"
+                    f"📦 *الباقة:* {plan.get('name','—')} ─ {plan.get('price','—')}\n"
+                    f"💳 *طريقة الدفع:* {method_name}\n"
+                    f"🕐 *الوقت:* {now[:19]}"
+                ),
+                reply_markup=InlineKeyboardMarkup(kb_admin),
+                parse_mode="Markdown"
+            )
+            c_main.execute(
+                "UPDATE subscription_requests SET admin_msg_id=?, admin_chat_id=? WHERE id=?",
+                (msg.message_id, admin_id, req_id)
+            )
+            conn_main.commit()
+        except Exception as e:
+            logger.error(f"خطأ في إرسال طلب الاشتراك للأدمن {admin_id}: {e}")
+
+    context.user_data["awaiting_proof"] = False
+    await update.message.reply_text(
+        "✅ *تم استلام طلبك بنجاح!*\n\n"
+        "سيتم مراجعة طلبك من قِبل المدير وإخطارك بالنتيجة قريباً.\n\n"
+        f"📞 للاستفسار: {SUPPORT_USER}",
+        parse_mode="Markdown"
+    )
+
+
+async def sub_approve(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """موافقة الأدمن على طلب الاشتراك"""
+    query = update.callback_query
+    await query.answer()
+    if not is_admin(query.from_user.id):
+        await query.answer("❌ غير مصرح", show_alert=True)
+        return
+
+    req_id = int(query.data.replace("sub_approve_", ""))
+    req = c_main.execute(
+        "SELECT user_id, username, name, plan, plan_price, plan_days, payment_method FROM subscription_requests WHERE id=? AND status='pending'",
+        (req_id,)
+    ).fetchone()
+    if not req:
+        await query.answer("❌ الطلب غير موجود أو تمت معالجته مسبقاً", show_alert=True)
+        return
+
+    user_id, uname, name, plan_key, price, days, method = req
+    plan_info = SUBSCRIPTION_PLANS.get(plan_key, {})
+    plan_name = plan_info.get("name", plan_key)
+    if not days:
+        days = plan_info.get("days", 30)
+
+    activate_subscription(user_id, uname or "", name or "", plan_key, days, query.from_user.id)
+    c_main.execute("UPDATE subscription_requests SET status='approved' WHERE id=?", (req_id,))
+    conn_main.commit()
+
+    # تعديل رسالة الأدمن
+    try:
+        await query.edit_message_caption(
+            caption=query.message.caption + f"\n\n✅ *تم القبول بواسطة:* @{query.from_user.username or query.from_user.id}",
+            parse_mode="Markdown"
+        )
+    except Exception:
+        pass
+
+    # إخطار المستخدم
+    end_date = (datetime.now() + timedelta(days=days)).strftime("%Y-%m-%d")
+    try:
+        await query.get_bot().send_message(
+            chat_id=user_id,
+            text=(
+                f"🎉 *تم تفعيل اشتراكك!*\n\n"
+                f"📦 *الباقة:* {plan_name} ─ {price}\n"
+                f"📅 *تاريخ الانتهاء:* {end_date}\n\n"
+                f"يمكنك الآن استخدام البوت. اضغط /start"
+            ),
+            parse_mode="Markdown"
+        )
+    except Exception as e:
+        logger.error(f"خطأ في إرسال إشعار القبول: {e}")
+
+
+async def sub_reject(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """رفض الأدمن لطلب الاشتراك"""
+    query = update.callback_query
+    await query.answer()
+    if not is_admin(query.from_user.id):
+        await query.answer("❌ غير مصرح", show_alert=True)
+        return
+
+    req_id = int(query.data.replace("sub_reject_", ""))
+    req = c_main.execute(
+        "SELECT user_id, username, name, plan FROM subscription_requests WHERE id=? AND status='pending'",
+        (req_id,)
+    ).fetchone()
+    if not req:
+        await query.answer("❌ الطلب غير موجود أو تمت معالجته مسبقاً", show_alert=True)
+        return
+
+    user_id, uname, name, plan_key = req
+    c_main.execute("UPDATE subscription_requests SET status='rejected' WHERE id=?", (req_id,))
+    conn_main.commit()
+
+    try:
+        await query.edit_message_caption(
+            caption=query.message.caption + f"\n\n❌ *تم الرفض بواسطة:* @{query.from_user.username or query.from_user.id}",
+            parse_mode="Markdown"
+        )
+    except Exception:
+        pass
+
+    try:
+        await query.get_bot().send_message(
+            chat_id=user_id,
+            text=(
+                f"❌ *للأسف، تم رفض طلب اشتراكك.*\n\n"
+                f"يرجى التواصل مع الدعم للمزيد من المعلومات:\n📞 {SUPPORT_USER}"
+            ),
+            parse_mode="Markdown"
+        )
+    except Exception as e:
+        logger.error(f"خطأ في إرسال إشعار الرفض: {e}")
+
+
+async def sub_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """رجوع من قائمة الاشتراكات"""
+    query = update.callback_query
+    await query.answer()
+    kb = [[InlineKeyboardButton("💳 اشترك الآن", callback_data="sub_plans")]]
+    await query.edit_message_text(
+        f"🚫 *غير مسموح*\n\nأنت غير مسجل في النظام.\nيرجى التواصل مع المدير.\n\n"
+        f"📞 {SUPPORT_USER} /\n\n━━━━━━━━━━━━━━━\n💎 *أو اشترك في خدماتنا مباشرةً!*",
+        reply_markup=InlineKeyboardMarkup(kb),
+        parse_mode="Markdown"
+    )
+
+
+# ==================================================================================
+#            ⭐ إدارة طرق الدفع من لوحة التحكم
+# ==================================================================================
+
+async def admin_payment_methods(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """لوحة إدارة طرق الدفع"""
+    query = update.callback_query
+    await query.answer()
+    if not is_admin(query.from_user.id):
+        return
+    methods = c_main.execute("SELECT id, method_key, display_name, address, is_active FROM payment_methods").fetchall()
+    kb = []
+    for mid, mk, mn, addr, active in methods:
+        status_icon = "✅" if active else "❌"
+        kb.append([InlineKeyboardButton(f"{status_icon} {mn}", callback_data=f"admin_pm_edit_{mid}")])
+    kb.append([InlineKeyboardButton("📋 طلبات الاشتراك", callback_data="admin_sub_requests")])
+    kb.append([InlineKeyboardButton("🔙 رجوع", callback_data="admin_panel")])
+    await query.edit_message_text(
+        "💳 *إدارة طرق الدفع*\n\nاختر طريقة لتعديل عنوانها وتعليماتها:",
+        reply_markup=InlineKeyboardMarkup(kb),
+        parse_mode="Markdown"
+    )
+
+
+async def admin_pm_edit(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """عرض تفاصيل طريقة الدفع وخيارات التعديل"""
+    query = update.callback_query
+    await query.answer()
+    if not is_admin(query.from_user.id):
+        return
+    pm_id = int(query.data.replace("admin_pm_edit_", ""))
+    row = c_main.execute("SELECT method_key, display_name, address, instructions, is_active FROM payment_methods WHERE id=?", (pm_id,)).fetchone()
+    if not row:
+        await query.answer("❌ غير موجود", show_alert=True)
+        return
+    mk, mn, addr, inst, active = row
+    context.user_data["editing_pm_id"] = pm_id
+    status = "✅ نشطة" if active else "❌ معطلة"
+    toggle_label = "❌ تعطيل" if active else "✅ تفعيل"
+    kb = [
+        [InlineKeyboardButton("✏️ تعديل العنوان", callback_data=f"admin_pm_set_addr_{pm_id}")],
+        [InlineKeyboardButton("📋 تعديل التعليمات", callback_data=f"admin_pm_set_inst_{pm_id}")],
+        [InlineKeyboardButton(toggle_label, callback_data=f"admin_pm_toggle_{pm_id}")],
+        [InlineKeyboardButton("🔙 رجوع", callback_data="admin_payment_methods")],
+    ]
+    await query.edit_message_text(
+        f"💳 *{mn}*\n\n"
+        f"📌 *العنوان:* `{addr or 'غير محدد'}`\n"
+        f"📋 *التعليمات:* {inst or 'غير محددة'}\n"
+        f"الحالة: {status}",
+        reply_markup=InlineKeyboardMarkup(kb),
+        parse_mode="Markdown"
+    )
+
+
+async def admin_pm_set_addr(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    pm_id = int(query.data.replace("admin_pm_set_addr_", ""))
+    context.user_data["editing_pm_id"] = pm_id
+    context.user_data["editing_pm_field"] = "address"
+    kb = [[InlineKeyboardButton("🔙 إلغاء", callback_data=f"admin_pm_edit_{pm_id}")]]
+    await query.edit_message_text("✏️ *أرسل العنوان/الرقم الجديد:*", reply_markup=InlineKeyboardMarkup(kb), parse_mode="Markdown")
+
+
+async def admin_pm_set_inst(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    pm_id = int(query.data.replace("admin_pm_set_inst_", ""))
+    context.user_data["editing_pm_id"] = pm_id
+    context.user_data["editing_pm_field"] = "instructions"
+    kb = [[InlineKeyboardButton("🔙 إلغاء", callback_data=f"admin_pm_edit_{pm_id}")]]
+    await query.edit_message_text("📋 *أرسل التعليمات الجديدة:*", reply_markup=InlineKeyboardMarkup(kb), parse_mode="Markdown")
+
+
+async def admin_pm_receive_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """استقبال النص الجديد لتعديل طريقة الدفع"""
+    pm_id = context.user_data.get("editing_pm_id")
+    field = context.user_data.get("editing_pm_field")
+    if not pm_id or not field:
+        return
+    text = update.message.text.strip()
+    if field == "address":
+        c_main.execute("UPDATE payment_methods SET address=? WHERE id=?", (text, pm_id))
+    elif field == "instructions":
+        c_main.execute("UPDATE payment_methods SET instructions=? WHERE id=?", (text, pm_id))
+    conn_main.commit()
+    context.user_data.pop("editing_pm_id", None)
+    context.user_data.pop("editing_pm_field", None)
+    row = c_main.execute("SELECT display_name FROM payment_methods WHERE id=?", (pm_id,)).fetchone()
+    mn = row[0] if row else "—"
+    field_name = "العنوان" if field == "address" else "التعليمات"
+    await update.message.reply_text(f"✅ *تم تحديث {field_name} لـ {mn} بنجاح!*", parse_mode="Markdown")
+
+
+async def admin_pm_toggle(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    pm_id = int(query.data.replace("admin_pm_toggle_", ""))
+    row = c_main.execute("SELECT is_active FROM payment_methods WHERE id=?", (pm_id,)).fetchone()
+    if not row:
+        return
+    new_val = 0 if row[0] == 1 else 1
+    c_main.execute("UPDATE payment_methods SET is_active=? WHERE id=?", (new_val, pm_id))
+    conn_main.commit()
+    # إعادة عرض شاشة التعديل بعد التبديل
+    row2 = c_main.execute("SELECT method_key, display_name, address, instructions, is_active FROM payment_methods WHERE id=?", (pm_id,)).fetchone()
+    if not row2:
+        return
+    mk, mn, addr, inst, active = row2
+    status = "✅ نشطة" if active else "❌ معطلة"
+    toggle_label = "❌ تعطيل" if active else "✅ تفعيل"
+    kb = [
+        [InlineKeyboardButton("✏️ تعديل العنوان", callback_data=f"admin_pm_set_addr_{pm_id}")],
+        [InlineKeyboardButton("📋 تعديل التعليمات", callback_data=f"admin_pm_set_inst_{pm_id}")],
+        [InlineKeyboardButton(toggle_label, callback_data=f"admin_pm_toggle_{pm_id}")],
+        [InlineKeyboardButton("🔙 رجوع", callback_data="admin_payment_methods")],
+    ]
+    await query.edit_message_text(
+        f"💳 *{mn}*\n\n"
+        f"📌 *العنوان:* `{addr or 'غير محدد'}`\n"
+        f"📋 *التعليمات:* {inst or 'غير محددة'}\n"
+        f"الحالة: {status}",
+        reply_markup=InlineKeyboardMarkup(kb),
+        parse_mode="Markdown"
+    )
+
+
+async def admin_sub_requests(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """عرض طلبات الاشتراك المعلقة"""
+    query = update.callback_query
+    await query.answer()
+    if not is_admin(query.from_user.id):
+        return
+    reqs = get_pending_subscription_requests()
+    if not reqs:
+        kb = [[InlineKeyboardButton("🔙 رجوع", callback_data="admin_payment_methods")]]
+        await query.edit_message_text("📋 *لا توجد طلبات اشتراك معلقة.*", reply_markup=InlineKeyboardMarkup(kb), parse_mode="Markdown")
+        return
+    txt = "📋 *طلبات الاشتراك المعلقة:*\n\n"
+    kb = []
+    for req in reqs[:10]:
+        rid, uid, uname, name, plan, price, method, _, created = req
+        plan_info = SUBSCRIPTION_PLANS.get(plan, {})
+        txt += f"#{rid} | {name} (@{uname or '—'}) | {plan_info.get('name', plan)} ─ {price} | {method}\n"
+        kb.append([
+            InlineKeyboardButton(f"✅ قبول #{rid}", callback_data=f"sub_approve_{rid}"),
+            InlineKeyboardButton(f"❌ رفض #{rid}", callback_data=f"sub_reject_{rid}"),
+        ])
+    kb.append([InlineKeyboardButton("🔙 رجوع", callback_data="admin_payment_methods")])
+    await query.edit_message_text(txt, reply_markup=InlineKeyboardMarkup(kb), parse_mode="Markdown")
 
 # ==================================================================================
 #                         دوال المدير لإضافة لعبة (AppsFlyer)
@@ -2936,6 +3568,7 @@ async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("🗑️ حذف حدث", callback_data="admin_delete_event")],
         [InlineKeyboardButton("📢 بث", callback_data="admin_broadcast")],
         [InlineKeyboardButton("📊 إحصائيات", callback_data="admin_stats")],
+        [InlineKeyboardButton("💳 طرق الدفع والاشتراكات", callback_data="admin_payment_methods")],
         [InlineKeyboardButton("🔙 رجوع", callback_data="main")]
     ]
     await query.edit_message_text("👑 *لوحة تحكم المدير*", reply_markup=InlineKeyboardMarkup(kb), parse_mode="Markdown")
@@ -7310,6 +7943,34 @@ def main():
     # ⭐ حذف ملف معرفات من زر 🗑️ بجانب الملف (ضمن عرض اللعبة)
     app.add_handler(CallbackQueryHandler(cred_delete_cb, pattern="^credel_(af|adj|sg)_\\d+$"))
     app.add_handler(CommandHandler("start", start))
+
+    # ⭐ معالجات الاشتراك في القناة الإجبارية
+    app.add_handler(CallbackQueryHandler(verify_channel_sub, pattern="^verify_channel_sub$"))
+
+    # ⭐ معالجات نظام الاشتراكات
+    app.add_handler(CallbackQueryHandler(sub_plans, pattern="^sub_plans$"))
+    app.add_handler(CallbackQueryHandler(sub_select_plan, pattern="^sub_select_(monthly|weekly|daily)$"))
+    app.add_handler(CallbackQueryHandler(sub_select_payment, pattern="^sub_pay_"))
+    app.add_handler(CallbackQueryHandler(sub_back, pattern="^sub_back$"))
+    app.add_handler(CallbackQueryHandler(sub_approve, pattern="^sub_approve_\\d+$"))
+    app.add_handler(CallbackQueryHandler(sub_reject, pattern="^sub_reject_\\d+$"))
+
+    # ⭐ معالجات إدارة طرق الدفع (لوحة الأدمن)
+    app.add_handler(CallbackQueryHandler(admin_payment_methods, pattern="^admin_payment_methods$"))
+    app.add_handler(CallbackQueryHandler(admin_pm_edit, pattern="^admin_pm_edit_\\d+$"))
+    app.add_handler(CallbackQueryHandler(admin_pm_set_addr, pattern="^admin_pm_set_addr_\\d+$"))
+    app.add_handler(CallbackQueryHandler(admin_pm_set_inst, pattern="^admin_pm_set_inst_\\d+$"))
+    app.add_handler(CallbackQueryHandler(admin_pm_toggle, pattern="^admin_pm_toggle_\\d+$"))
+    app.add_handler(CallbackQueryHandler(admin_sub_requests, pattern="^admin_sub_requests$"))
+
+    # ⭐ معالج استقبال صور إثبات الدفع
+    app.add_handler(MessageHandler(filters.PHOTO, sub_receive_proof))
+
+    # ⭐ معالج استقبال نصوص تعديل طرق الدفع (الأدمن)
+    app.add_handler(MessageHandler(
+        filters.TEXT & ~filters.COMMAND,
+        admin_pm_receive_text
+    ))
 
     print("=" * 60)
     print("✅ AK Bot شغال - النسخة النهائية الكاملة")

@@ -207,3 +207,54 @@ CREATE INDEX IF NOT EXISTS idx_favorites_user ON favorites(user_id);
 CREATE INDEX IF NOT EXISTS idx_credential_files_lookup ON credential_files(user_id, platform, game_id);
 CREATE INDEX IF NOT EXISTS idx_sched_groups_user ON sched_groups(user_id);
 CREATE INDEX IF NOT EXISTS idx_sched_groups_status ON sched_groups(status);
+
+-- ==================== جداول نظام الاشتراكات (إضافة جديدة) ====================
+
+CREATE TABLE IF NOT EXISTS subscriptions (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT UNIQUE,
+    plan TEXT,
+    start_date TEXT,
+    end_date TEXT,
+    status TEXT DEFAULT 'active',
+    approved_by BIGINT,
+    approved_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS subscription_requests (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT,
+    username TEXT,
+    name TEXT,
+    plan TEXT,
+    plan_price TEXT,
+    plan_days INTEGER,
+    payment_method TEXT,
+    proof_file_id TEXT,
+    status TEXT DEFAULT 'pending',
+    created_at TEXT,
+    admin_msg_id BIGINT,
+    admin_chat_id BIGINT
+);
+
+CREATE TABLE IF NOT EXISTS payment_methods (
+    id BIGSERIAL PRIMARY KEY,
+    method_key TEXT UNIQUE,
+    display_name TEXT,
+    address TEXT,
+    instructions TEXT,
+    is_active INTEGER DEFAULT 1
+);
+
+-- بيانات افتراضية لطرق الدفع
+INSERT INTO payment_methods (method_key, display_name, address, instructions, is_active)
+VALUES
+  ('sham_cash',     'شام كاش',     '', 'أرسل المبلغ على الرقم الموضح وأرسل صورة الإيصال.', 1),
+  ('syriatel_cash', 'سيريتيل كاش', '', 'أرسل المبلغ على الرقم الموضح وأرسل صورة الإيصال.', 1),
+  ('usdt_bep20',    'USDT BEP20',  '', 'أرسل المبلغ على العنوان الموضح وأرسل صورة الإيصال.', 1)
+ON CONFLICT (method_key) DO NOTHING;
+
+CREATE INDEX IF NOT EXISTS idx_subscriptions_user ON subscriptions(user_id);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_status ON subscriptions(status);
+CREATE INDEX IF NOT EXISTS idx_sub_requests_user ON subscription_requests(user_id);
+CREATE INDEX IF NOT EXISTS idx_sub_requests_status ON subscription_requests(status);
