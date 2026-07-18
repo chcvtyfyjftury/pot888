@@ -49,8 +49,8 @@ else:
 SUPPORT_USER = "@SSOLTAAANNN"
 
 # ==================== إعدادات قناة الاشتراك الإجباري ====================
-CHANNEL_USERNAME = "@NITRO_SMS_Channel"
-CHANNEL_URL = "https://t.me/NITRO_SMS_Channel"
+CHANNEL_USERNAME = "@aaaarkdjdj"
+CHANNEL_URL = "https://t.me/aaaarkdjdj"
 
 # ==================== باقات الاشتراك ====================
 SUBSCRIPTION_PLANS = {
