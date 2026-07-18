@@ -2126,7 +2126,7 @@ async def _show_main_menu(message, uid: int):
     kb.append([InlineKeyboardButton(f"{platform_emoji} نظام التشغيل", callback_data="select_platform")])
     kb.append([InlineKeyboardButton("⭐ المفضلة", callback_data="favorites_menu")])
     await message.reply_text(
-        f"⚡ *SYNC Jumper Bot* ⚡\n\n"
+        f"⚡ *Zeus Jamper Bot* ⚡\n\n"
         f"╭━━━━━━━━━━━━━━━╮\n"
         f"┃ 📱 AppsFlyer\n┃ 📊 Adjust\n┃ 🌟 Singular\n┃ 🌾 مزرعة الجمبرة\n┃ 🔧 بروكسي\n┃ {platform_emoji} النظام: {current_platform.upper()}\n"
         f"╰━━━━━━━━━━━━━━━╯\n\n✨ *اختر الخدمة* ✨",
@@ -2762,7 +2762,7 @@ async def main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     kb.append([InlineKeyboardButton("⭐ المفضلة", callback_data="favorites_menu")])
     
     await query.edit_message_text(
-        f"🔥 *AK Jumper Bot* 🔥\n\n✨ *اختر الخدمة* ✨\n\n📱 النظام الحالي: {platform_emoji} {current_platform.upper()}",
+        f"🔥 *Zeus Jamper Bot* 🔥\n\n✨ *اختر الخدمة* ✨\n\n📱 النظام الحالي: {platform_emoji} {current_platform.upper()}",
         reply_markup=InlineKeyboardMarkup(kb),
         parse_mode="Markdown"
     )
@@ -7973,7 +7973,7 @@ def main():
     ))
 
     print("=" * 60)
-    print("✅ AK Bot شغال - النسخة النهائية الكاملة")
+    print("✅ Zeus Jamper Bot شغال - النسخة النهائية الكاملة")
     print(f"👑 المديرين: {ADMIN_IDS}")
     print(f"📞 الدعم: {SUPPORT_USER}")
     print("=" * 60)
