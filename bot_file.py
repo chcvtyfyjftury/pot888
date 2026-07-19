@@ -2443,14 +2443,14 @@ async def sub_approve(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn_main.commit()
 
   # تعديل رسالة الأدمن وإخفاء الأزرار فوراً عند القبول
-        try:
-            await query.edit_message_text(
-                text=query.message.text + f"\n\n🟢 <b>[ تم قبول الطلب وتفعيل الاشتراك بنجاح ✅ ]</b>",
-                parse_mode="HTML",
-                reply_markup=None
-            )
-        except Exception as e:
-            print(f"خطأ في تحديث رسالة القبول: {e}")
+    try:
+        await query.edit_message_text(
+            text=query.message.text + f"\n\n🟢 <b>[ تم قبول الطلب وتفعيل الاشتراك بنجاح ✅ ]</b>",
+            parse_mode="HTML",
+            reply_markup=None
+        )
+    except Exception as e:
+        print(f"خطأ في تحديث رسالة القبول: {e}")
 
     # إخطار المستخدم
     end_date = (datetime.now() + timedelta(days=days)).strftime("%Y-%m-%d")
