@@ -54,9 +54,9 @@ CHANNEL_URL = "https://t.me/aaaarkdjdj"
 
 # ==================== باقات الاشتراك ====================
 SUBSCRIPTION_PLANS = {
-    "monthly": {"name": "📅 شهرية", "price": "22$", "days": 30, "desc": "30 يوم"},
-    "weekly":  {"name": "📆 أسبوعية", "price": "8$",  "days": 7,  "desc": "7 أيام"},
-    "daily":   {"name": "🗓️ يومية",   "price": "2$",  "days": 1,  "desc": "يوم واحد"},
+    "monthly": {"name": "📅 شهرية", "price": "30$", "days": 30, "desc": "30 يوم"},
+    "weekly": {"name": "📅 أسبوعية", "price": "7$", "days": 7, "desc": "7 أيام"},
+    "daily": {"name": "📅 يومية", "price": "1$", "days": 1, "desc": "يوم واحد"},
 }
 
 # ==================== طرق الدفع الافتراضية ====================
