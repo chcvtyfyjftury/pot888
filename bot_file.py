@@ -2134,7 +2134,7 @@ async def _show_main_menu(message, uid: int):
         reply_markup=InlineKeyboardMarkup(kb),
         parse_mode="Markdown"
     )
-        async def user_profile_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def user_profile_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         query = update.callback_query
         await query.answer()
         uid = update.effective_user.id
