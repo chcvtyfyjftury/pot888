@@ -8111,7 +8111,7 @@ def main():
     app.add_handler(CallbackQueryHandler(admin_sub_requests, pattern="^admin_sub_requests$"))
 
     # ⭐ معالج استقبال صور إثبات الدفع
-    app.add_handler(MessageHandler(filters.PHOTO, sub_receive_proof))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, sub_receive_proof))
 
     # ⭐ معالج استقبال نصوص تعديل طرق الدفع (الأدمن)
     app.add_handler(MessageHandler(
