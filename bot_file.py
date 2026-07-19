@@ -2082,16 +2082,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # ── 5) التحقق من إذن الوصول أو اشتراك نشط ──
     revoke_expired_subscriptions()
-    if is_allowed(uid) and has_active_subscription(uid):
-        return await _show_main_menu(update.message, uid)
-
-    if is_allowed(uid) and not has_active_subscription(uid):
-        # مستخدم مضاف يدوياً بدون اشتراك → يدخل مباشرة
-        return await _show_main_menu(update.message, uid)
-
-    # ── 6) المستخدم غير مسجل → عرض خيارات الاشتراك ──
-    await _show_not_registered(update.message, uid)
-
+    return await _show_main_menu(update.message, uid)
 
 async def _show_not_registered(message, uid: int):
     """عرض رسالة غير مسجل مع خيارات الاشتراك"""
