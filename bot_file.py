@@ -4301,6 +4301,19 @@ async def del_event_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def af_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
+    # 🔒 قفل الأمان: التحقق من الاشتراك قبل عرض أي شيء
+    uid = update.effective_user.id
+    if not has_active_subscription(uid):
+        kb_block = [
+            [InlineKeyboardButton("💳 خطط الاشتراك", callback_data="sub_plans")],
+            [InlineKeyboardButton("↩️ العودة للقائمة الرئيسية", callback_data="main")]
+        ]
+        await query.edit_message_text(
+            "⚠️ عذراً يا غالي! هذا القسم متاح حصرياً للمشتركين.\n\nيرجى تفعيل خطة اشتراكك أولاً لتتمكن من فتح منصات الإرسال، اختيار الألعاب، ورفع اللفلات تلقائياً.", 
+            reply_markup=InlineKeyboardMarkup(kb_block), 
+            parse_mode="Markdown"
+        )
+        return
     
     kb = [
         [InlineKeyboardButton("🎮 عرض الألعاب", callback_data="af_show_games")],
