@@ -2307,14 +2307,14 @@ async def sub_select_payment(update: Update, context: ContextTypes.DEFAULT_TYPE)
     method_key = query.data.replace("sub_pay_", "")
 
    # ---- فحص طريقة الدفع وعرض بياناتك فوراً ----
-        my_sham_account = "9dfa2de56bb98242afddd7e527d80448"
-        my_sham_inst = "الرجاء تحويل قيمة الباقة إلى حساب الشام كاش المذكور أعلاه، ثم إرسال لقطة شاشة للإيصال إلى الدعم."
-        
-        my_bep20_wallet = "0x01a4a23c51cd83e84a0c083a1fe14d8b3940f766"
-        my_bep20_inst = "الرجاء إرسال قيمة الباقة بالـ USDT عبر شبكة (BEP20) المذكورة أعلاه، وتزويد الدعم بهاش العملية."
+    my_sham_account = "9dfa2de56bb98242afddd7e527d80448"
+    my_sham_inst = "الرجاء تحويل قيمة الباقة إلى حساب الشام كاش المذكور أعلاه، ثم إرسال لقطة شاشة للإيصال إلى الدعم."
+    
+    my_bep20_wallet = "0x01a4a23c51cd83e84a0c083a1fe14d8b3940f766"
+    my_bep20_inst = "الرجاء إرسال قيمة الباقة بالـ USDT عبر شبكة (BEP20) المذكورة أعلاه، وتزويد الدعم بهاش العملية."
 
-        if method_key == "sham_cash":
-            row = ("شام كاش", my_sham_account, my_sham_inst)
+    if method_key == "sham_cash":
+        row = ("شام كاش", my_sham_account, my_sham_inst)
     elif method_key == "usdt_bep20":
         row = ("USDT BEP20", my_bep20_wallet, my_bep20_inst)
     else:
