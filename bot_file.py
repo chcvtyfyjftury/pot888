@@ -2139,7 +2139,6 @@ async def _show_main_menu(message, uid: int):
     await query.answer()
     uid = update.effective_user.id
 
-    # القيم الظاهرة متل الصورة التانية (مستقبلاً منربطها بالـ Supabase تبعك)
     balance = "3.00"
     sub_status = "❌ لا يوجد اشتراك نشط"
     rem_today = "150"
