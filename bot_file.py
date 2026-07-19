@@ -2332,15 +2332,15 @@ async def sub_select_payment(update: Update, context: ContextTypes.DEFAULT_TYPE)
     addr_line = f"📌 *العنوان/الرقم:*\n`{addr}`\n\n" if addr else ""
     kb = [[InlineKeyboardButton("🔙 رجوع", callback_data=f"sub_select_{plan_key}")]]
     await query.edit_message_text(
-        f"💳 *طريقة الدفع:* {mn}\n"
-        f"📦 *الباقة:* {plan.get('name','—')} ─ {plan.get('price','—')}\n\n"
-        f"{addr_line}"
-        f"📋 *التعليمات:*\n{inst}\n\n"
-        f"━━━━━━━━━━━━━━━\n"
-        f"📸 *أرسل صورة إثبات الدفع الآن* (صورة الإيصال).",
-        reply_markup=InlineKeyboardMarkup(kb),
-        parse_mode="Markdown"
-    )
+            f"💳 *طريقة الدفع:* {mn}\n"
+            f"📦 *الباقة:* {plan.get('name','-')} - {plan.get('price','-')}\n\n"
+            f"{addr_line}"
+            f"📋 *التعليمات:* \n{inst}\n\n"
+            f"────────────────\n"
+            f"⌨️ *أرسل رقم العملية الآن (كنص لقطة واحدة).*" ,
+            reply_markup=InlineKeyboardMarkup(kb),
+            parse_mode="Markdown"
+        )
     context.user_data["awaiting_proof"] = True
 
 
