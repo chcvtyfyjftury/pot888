@@ -2348,18 +2348,43 @@ async def sub_receive_proof(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """استقبال صورة إثبات الدفع"""
     if not context.user_data.get("awaiting_proof"):
         return
-    if not update.message.photo:
-        await update.message.reply_text("📸 يرجى إرسال *صورة* إثبات الدفع.", parse_mode="Markdown")
+
+    # استقبال رقم العملية كنص بدل الصورة
+    tx_num = update.message.text
+    if not tx_num:
+        await update.message.reply_text("⚠️ الرجاء إرسال رقم العملية كنص واضح لتأكيد الدفع.")
         return
 
     uid = update.effective_user.id
-    uname = update.effective_user.username or ""
-    name = update.effective_user.first_name or ""
-    plan = context.user_data.get("sub_plan", {})
-    plan_key = context.user_data.get("sub_plan_key", "")
-    method_name = context.user_data.get("sub_method_name", "")
-    photo_file_id = update.message.photo[-1].file_id
+    uname = update.effective_user.username or "لا يوجد معرف"
+    name = update.effective_user.first_name or "بدون اسم"
 
+    plan = context.user_data.get("sub_plan", {})
+    plan_name = plan.get("name", "غير معروف")
+    plan_price = plan.get("price", "غير معروف")
+    method_name = context.user_data.get("sub_method_name", "غير معروف")
+
+    # 1. رسالة تأكيد فورا للزبون
+    await update.message.reply_text("✅ تم استلام رقم العملية بنجاح! جاري التحقق من قبل الإدارة وتفعيل باقتك فوراً. ⏳")
+    context.user_data["awaiting_proof"] = False
+
+    # 2. إرسال الإشعار الفوري لك (تم تثبيت الآيدي الخاص بك بنجاح)
+    ADMIN_ID = 1214736439
+    
+    admin_message = (
+        f"🚨 <b>طلب دفع جديد واشتراك زبون!</b>\n\n"
+        f"👤 <b>المستخدِم:</b> <a href='tg://user?id={uid}'>{name}</a> (@{uname})\n"
+        f"🆔 <b>آيدي الحساب:</b> <code>{uid}</code>\n"
+        f"📦 <b>الباقة المطلوبة:</b> {plan_name}\n"
+        f"💰 <b>المبلغ (شقد باعت):</b> {plan_price}\n"
+        f"💳 <b>طريقة الدفع:</b> {method_name}\n"
+        f"🔢 <b>رقم العملية:</b> <code>{tx_num}</code>"
+    )
+
+    try:
+        await context.bot.send_message(chat_id=ADMIN_ID, text=admin_message, parse_mode="HTML")
+    except Exception as e:
+        print(f"خطأ في إرسال الإشعار للإدارة: {e}")
     # حفظ الطلب
     now = datetime.now().isoformat()
     c_main.execute(
