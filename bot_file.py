@@ -2364,10 +2364,19 @@ async def sub_receive_proof(update: Update, context: ContextTypes.DEFAULT_TYPE):
     plan_price = plan.get("price", "غير معروف")
     method_name = context.user_data.get("sub_method_name", "غير معروف")
 
-    # 1. حفظ الطلب تلقائياً في قاعدة البيانات بنظامك الأصلي كرمال كبسة القبول تلاقيه
+    # تحديد الأيام تلقائياً حسب نوع الباقة كرمال يحسب التاريخ صح للزبون
+    plan_days = plan.get("days", 30)
+    if "يومية" in plan_name:
+        plan_days = 1
+    elif "أسبوعية" in plan_name:
+        plan_days = 7
+    elif "شهرية" in plan_name:
+        plan_days = 30
+
+    # 1. حفظ الطلب تلقائياً في قاعدة البيانات بنظامك الأصلي مع الأيام الصحيحة
     c_main.execute(
         "INSERT INTO subscription_requests (user_id, username, name, plan, plan_price, plan_days, payment_method, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-        (uid, uname, name, plan_name, plan_price, 30, method_name, "pending")
+        (uid, uname, name, plan_name, plan_price, plan_days, method_name, "pending")
     )
     conn_main.commit()
     req_id = c_main.execute("SELECT last_insert_rowid()").fetchone()[0]
