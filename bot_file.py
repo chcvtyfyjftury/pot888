@@ -2117,6 +2117,7 @@ async def _show_main_menu(message, uid: int):
     kb = []
     if is_admin(uid):
         kb.append([InlineKeyboardButton("👑 لوحة التحكم", callback_data="admin_panel")])
+    kb.append([InlineKeyboardButton("👤 ملفي الشخصي", callback_data="user_profile")])      
     kb.append([InlineKeyboardButton("📱 AppsFlyer", callback_data="af")])
     kb.append([InlineKeyboardButton("📊 Adjust", callback_data="adj")])
     kb.append([InlineKeyboardButton("🌟 Singular", callback_data="singular")])
@@ -2133,6 +2134,46 @@ async def _show_main_menu(message, uid: int):
         reply_markup=InlineKeyboardMarkup(kb),
         parse_mode="Markdown"
     )
+    async def user_profile_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    uid = update.effective_user.id
+
+    # القيم الظاهرة متل الصورة التانية (مستقبلاً منربطها بالـ Supabase تبعك)
+    balance = "3.00"
+    sub_status = "❌ لا يوجد اشتراك نشط"
+    rem_today = "150"
+    rem_perm = "196"
+    boost_rem = "0"
+    sent_ops = "0"
+    success_ops = "0"
+    failed_ops = "0"
+    success_rate = "0"
+    proxy_status = "مفعل 🟢"
+
+    profile_text = (
+        f"👤 *ملفك الشخصي*\n\n"
+        f"💰 *الرصيد الحالي:* {balance}$\n\n"
+        f"🎫 *الاشتراك الحالي:*\n{sub_status}\n\n"
+        f"📈 *إحصائيات اليوم:*\n"
+        f"📊 العمليات المتبقية: {rem_today} من 150\n"
+        f"♾️ العمليات الدائمة المتبقية: {rem_perm}\n"
+        f"⚡ البوست المؤقت المتبقي: {boost_rem} (ينتهي عند 00:00 UTC)\n"
+        f"✉️ عمليات مرسلة: {sent_ops}\n"
+        f"✅ عمليات ناجحة: {success_ops}\n"
+        f"❌ عمليات فاشلة: {failed_ops}\n"
+        f"🔄 معدل النجاح: {success_rate}%\n\n"
+        f"🌐 *البروكسي:* {proxy_status}"
+    )
+
+    kb = [
+        [InlineKeyboardButton("🎫 خطط الاشتراك", callback_data="sub_plans")],
+        [InlineKeyboardButton("♾️ شراء عمليات دائمة", callback_data="buy_perm_ops")],
+        [InlineKeyboardButton("🌐 إدارة البروكسي", callback_data="manage_proxy")],
+        [InlineKeyboardButton("🔙 العودة", callback_data="main")]
+    ]
+
+    await query.edit_message_text(text=profile_text, reply_markup=InlineKeyboardMarkup(kb), parse_mode="Markdown")
 async def clean_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """تنظيف شامل وبدء جديد"""
     uid = update.effective_user.id
@@ -2142,6 +2183,7 @@ async def clean_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # أضف في main():
     app.add_handler(CommandHandler("clean", clean_start))
+    app.add_handler(CallbackQueryHandler(user_profile_menu, pattern="^user_profile$"))
 
 # ==================================================================================
 #            ⭐ نظام التحقق من الاشتراك في القناة
