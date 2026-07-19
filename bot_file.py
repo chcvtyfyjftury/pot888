@@ -2139,16 +2139,47 @@ async def user_profile_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     uid = update.effective_user.id
 
-    balance = "3.00"
-    sub_status = "❌ لا يوجد اشتراك نشط"
-    rem_today = "150"
-    rem_perm = "196"
+    # 1. جلب حالة الاشتراك الحقيقية من جدول subscriptions
+    sub_row = c_main.execute("SELECT plan, end_date, status FROM subscriptions WHERE user_id = ?", (uid,)).fetchone()
+    if sub_row and sub_row[2] == "active":
+        plan_name = sub_row[0]
+        sub_status = f"⭐ {plan_name}"
+    else:
+        plan_name = "بدون"
+        sub_status = "❌ لا يوجد اشتراك نشط"
+
+    # 2. جلب إحصائيات العمليات المستهلكة من جدول user_stats
+    stats_row = c_main.execute("SELECT daily_requests, total_af_requests, total_adj_requests, total_singular_requests FROM user_stats WHERE user_id = ?", (uid,)).fetchone()
+    if stats_row:
+        daily_reqs = stats_row[0]   # العمليات يلي استهلكها اليوم
+        total_af = stats_row[1]     # عمليات AppsFlyer
+        total_adj = stats_row[2]    # عمليات Adjust
+        total_sg = stats_row[3]     # عمليات Singular
+        
+        # إجمالي العمليات المرسلة الكلية
+        sent_ops = total_af + total_adj + total_sg
+        
+        # حساب العمليات المتبقية اليوم (إذا مشترك بنفترض حدّه 150، وإذا مجاني 0)
+        max_limit = 150 if plan_name != "بدون" else 0
+        rem_today = max(0, max_limit - daily_reqs)
+    else:
+        sent_ops = 0
+        rem_today = 0
+
+    # 3. جلب حالة البروكسي الحقيقية من جدول proxies (إذا ضايف بيطلع مفعل، إذا مو ضايف غير مفعل)
+    proxy_row = c_main.execute("SELECT 1 FROM proxies WHERE user_id = ?", (uid,)).fetchone()
+    if proxy_row:
+        proxy_status = "مفعل 🟢"
+    else:
+        proxy_status = "غير مفعل 🔴"
+
+    # 4. قيم افتراضية لباقي المؤشرات (لأنها مو موجودة بجدول الإحصائيات الحالي)
+    balance = "0.00" 
+    rem_perm = "0"
     boost_rem = "0"
-    sent_ops = "0"
     success_ops = "0"
     failed_ops = "0"
     success_rate = "0"
-    proxy_status = "مفعل 🟢"
 
     profile_text = (
         f"👤 *ملفك الشخصي*\n\n"
