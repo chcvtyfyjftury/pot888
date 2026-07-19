@@ -2249,10 +2249,10 @@ async def sub_plans(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )])
     kb.append([InlineKeyboardButton("🔙 رجوع", callback_data="sub_back")])
     await query.edit_message_text(
-        "💎 *اختر باقة الاشتراك:*\n\n"
-        "📅 *شهرية* ─ 22$ (30 يوم)\n"
-        "📆 *أسبوعية* ─ 8$ (7 أيام)\n"
-        "🗓️ *يومية* ─ 2$ (يوم واحد)",
+        "اختر باقة الاشتراك: 💎\n\n"
+        "📅 شهرية – $30 (30 يوم)\n"
+        "📅 أسبوعية – $7 (7 أيام)\n"
+        "📅 يومية – $1 (يوم واحد)"
         reply_markup=InlineKeyboardMarkup(kb),
         parse_mode="Markdown"
     )
