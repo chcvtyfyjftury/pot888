@@ -2364,11 +2364,19 @@ async def sub_receive_proof(update: Update, context: ContextTypes.DEFAULT_TYPE):
     plan_price = plan.get("price", "غير معروف")
     method_name = context.user_data.get("sub_method_name", "غير معروف")
 
-    # 1. رسالة تأكيد فورا للزبون
+    # 1. حفظ الطلب تلقائياً في قاعدة البيانات بنظامك الأصلي كرمال كبسة القبول تلاقيه
+    c_main.execute(
+        "INSERT INTO subscription_requests (user_id, username, name, plan, plan_price, plan_days, payment_method, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        (uid, uname, name, plan_name, plan_price, 30, method_name, "pending")
+    )
+    conn_main.commit()
+    req_id = c_main.execute("SELECT last_insert_rowid()").fetchone()[0]
+
+    # 2. رسالة تأكيد فورا للزبون بقلب البوت
     await update.message.reply_text("✅ تم استلام رقم العملية بنجاح! جاري التحقق من قبل الإدارة وتفعيل باقتك فوراً. ⏳")
     context.user_data["awaiting_proof"] = False
 
-    # 2. إرسال الإشعار الفوري لك (تم تثبيت الآيدي الخاص بك بنجاح)
+    # 3. إرسال الإشعار الفوري لك مع أزرار القبول والرفض الشغالة
     ADMIN_ID = 1214736439
     
     admin_message = (
@@ -2381,11 +2389,10 @@ async def sub_receive_proof(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"🔢 <b>رقم العملية:</b> <code>{tx_num}</code>"
     )
 
-    # إنشاء أزرار القبول والرفض التفاعلية وتوصيلها بنظام البوت الخاص بك
     admin_kb = [
         [
-            InlineKeyboardButton("✅ قبول الطلب", callback_data=f"sub_approve_{uid}"),
-            InlineKeyboardButton("❌ رفض الطلب", callback_data=f"sub_reject_{uid}")
+            InlineKeyboardButton("✅ قبول الطلب", callback_data=f"sub_approve_{req_id}"),
+            InlineKeyboardButton("❌ رفض الطلب", callback_data=f"sub_reject_{req_id}")
         ]
     ]
 
@@ -2398,56 +2405,6 @@ async def sub_receive_proof(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     except Exception as e:
         print(f"خطأ في إرسال الإشعار للإدارة: {e}")
-    # حفظ الطلب
-    now = datetime.now().isoformat()
-    c_main.execute(
-        """INSERT INTO subscription_requests (user_id, username, name, plan, plan_price, plan_days, payment_method, proof_file_id, status, created_at)
-           VALUES (?,?,?,?,?,?,?,?,?,?)""",
-        (uid, uname, name, plan_key, plan.get("price",""), plan.get("days",0), method_name, photo_file_id, "pending", now)
-    )
-    conn_main.commit()
-    req_id = c_main.execute("SELECT last_insert_rowid()").fetchone()[0]
-
-    # إرسال إشعار للأدمنية
-    for admin_id in ADMIN_IDS:
-        try:
-            kb_admin = [
-                [
-                    InlineKeyboardButton("✅ قبول", callback_data=f"sub_approve_{req_id}"),
-                    InlineKeyboardButton("❌ رفض", callback_data=f"sub_reject_{req_id}"),
-                ]
-            ]
-            msg = await update.get_bot().send_photo(
-                chat_id=admin_id,
-                photo=photo_file_id,
-                caption=(
-                    f"📬 *طلب اشتراك جديد #{req_id}*\n\n"
-                    f"👤 *المستخدم:* {name}\n"
-                    f"🆔 *ID:* `{uid}`\n"
-                    f"📛 *يوزرنيم:* @{uname if uname else 'لا يوجد'}\n"
-                    f"📦 *الباقة:* {plan.get('name','—')} ─ {plan.get('price','—')}\n"
-                    f"💳 *طريقة الدفع:* {method_name}\n"
-                    f"🕐 *الوقت:* {now[:19]}"
-                ),
-                reply_markup=InlineKeyboardMarkup(kb_admin),
-                parse_mode="Markdown"
-            )
-            c_main.execute(
-                "UPDATE subscription_requests SET admin_msg_id=?, admin_chat_id=? WHERE id=?",
-                (msg.message_id, admin_id, req_id)
-            )
-            conn_main.commit()
-        except Exception as e:
-            logger.error(f"خطأ في إرسال طلب الاشتراك للأدمن {admin_id}: {e}")
-
-    context.user_data["awaiting_proof"] = False
-    await update.message.reply_text(
-        "✅ *تم استلام طلبك بنجاح!*\n\n"
-        "سيتم مراجعة طلبك من قِبل المدير وإخطارك بالنتيجة قريباً.\n\n"
-        f"📞 للاستفسار: {SUPPORT_USER}",
-        parse_mode="Markdown"
-    )
-
 
 async def sub_approve(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """موافقة الأدمن على طلب الاشتراك"""
