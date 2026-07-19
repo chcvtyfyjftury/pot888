@@ -2381,8 +2381,21 @@ async def sub_receive_proof(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"🔢 <b>رقم العملية:</b> <code>{tx_num}</code>"
     )
 
+    # إنشاء أزرار القبول والرفض التفاعلية وتوصيلها بنظام البوت الخاص بك
+    admin_kb = [
+        [
+            InlineKeyboardButton("✅ قبول الطلب", callback_data=f"sub_approve_{uid}"),
+            InlineKeyboardButton("❌ رفض الطلب", callback_data=f"sub_reject_{uid}")
+        ]
+    ]
+
     try:
-        await context.bot.send_message(chat_id=ADMIN_ID, text=admin_message, parse_mode="HTML")
+        await context.bot.send_message(
+            chat_id=ADMIN_ID, 
+            text=admin_message, 
+            parse_mode="HTML",
+            reply_markup=InlineKeyboardMarkup(admin_kb)
+        )
     except Exception as e:
         print(f"خطأ في إرسال الإشعار للإدارة: {e}")
     # حفظ الطلب
