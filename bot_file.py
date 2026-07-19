@@ -2296,10 +2296,13 @@ async def sub_select_payment(update: Update, context: ContextTypes.DEFAULT_TYPE)
     await query.answer()
     method_key = query.data.replace("sub_pay_", "")
 
-    row = c_main.execute(
-        "SELECT display_name, address, instructions FROM payment_methods WHERE method_key=?",
-        (method_key,)
-    ).fetchone()
+    # فحص طريقة الدفع المحددة وعرض بياناتك الخاصة فوراً
+        if method_key == "sham_cash":
+            row = ("شام كاش", "9dfa2de56bb98242afddd7e527d80448", "الرجاء تحويل قيمة الباقة إلى حساب الشام كاش المذكور أعلاه، ثم إرسال لقطة شاشة للإيصال إلى الدعم لتفعيل حسابك فوراً.")
+        elif method_key == "usdt_bep20":
+            row = ("USDT BEP20", "0x01a4a23c51cd83e84a0c083a1fe14d8b3940f766", "الرجاء إرسال قيمة الباقة بالـ USDT عبر شبكة (BEP20) إلى العنوان المذكور أعلاه، وتزويد الدعم بهاش العملية لتفعيل حسابك تلقائياً.")
+        else:
+            row = None
     if not row:
         await query.answer("❌ طريقة دفع غير صحيحة", show_alert=True)
         return
