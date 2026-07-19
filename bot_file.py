@@ -2270,7 +2270,17 @@ async def sub_select_plan(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["sub_plan_key"] = plan_key
     context.user_data["sub_plan"] = plan
 
-    methods = get_active_payment_methods()
+   # ---- بيانات حساباتك الشخصية (مفصولة لمنع مشاكل المتصفح) ----
+    my_sham_account = "9dfa2de56bb98242afddd7e527d80448"
+    my_sham_inst = "الرجاء تحويل قيمة الباقة إلى حساب الشام كاش المذكور أعلاه، ثم إرسال لقطة شاشة للإيصال إلى الدعم."
+    
+    my_bep20_wallet = "0x01a4a23c51cd83e84a0c083a1fe14d8b3940f766"
+    my_bep20_inst = "الرجاء إرسال قيمة الباقة بالـ USDT عبر شبكة (BEP20) المذكورة أعلاه، وتزويد الدعم بهاش العملية."
+
+    methods = [
+        ("sham_cash", "شام كاش", my_sham_account, my_sham_inst),
+        ("usdt_bep20", "USDT BEP20", my_bep20_wallet, my_bep20_inst)
+    ]
     if not methods:
         await query.edit_message_text(
             "⚠️ *لا توجد طرق دفع متاحة حالياً.*\n\nيرجى التواصل مع الدعم: " + SUPPORT_USER,
@@ -2296,13 +2306,19 @@ async def sub_select_payment(update: Update, context: ContextTypes.DEFAULT_TYPE)
     await query.answer()
     method_key = query.data.replace("sub_pay_", "")
 
-    # فحص طريقة الدفع المحددة وعرض بياناتك الخاصة فوراً
+   # ---- فحص طريقة الدفع وعرض بياناتك فوراً ----
+        my_sham_account = "9dfa2de56bb98242afddd7e527d80448"
+        my_sham_inst = "الرجاء تحويل قيمة الباقة إلى حساب الشام كاش المذكور أعلاه، ثم إرسال لقطة شاشة للإيصال إلى الدعم."
+        
+        my_bep20_wallet = "0x01a4a23c51cd83e84a0c083a1fe14d8b3940f766"
+        my_bep20_inst = "الرجاء إرسال قيمة الباقة بالـ USDT عبر شبكة (BEP20) المذكورة أعلاه، وتزويد الدعم بهاش العملية."
+
         if method_key == "sham_cash":
-            row = ("شام كاش", "9dfa2de56bb98242afddd7e527d80448", "الرجاء تحويل قيمة الباقة إلى حساب الشام كاش المذكور أعلاه، ثم إرسال لقطة شاشة للإيصال إلى الدعم لتفعيل حسابك فوراً.")
-        elif method_key == "usdt_bep20":
-            row = ("USDT BEP20", "0x01a4a23c51cd83e84a0c083a1fe14d8b3940f766", "الرجاء إرسال قيمة الباقة بالـ USDT عبر شبكة (BEP20) إلى العنوان المذكور أعلاه، وتزويد الدعم بهاش العملية لتفعيل حسابك تلقائياً.")
-        else:
-            row = None
+            row = ("شام كاش", my_sham_account, my_sham_inst)
+    elif method_key == "usdt_bep20":
+        row = ("USDT BEP20", my_bep20_wallet, my_bep20_inst)
+    else:
+        row = None
     if not row:
         await query.answer("❌ طريقة دفع غير صحيحة", show_alert=True)
         return
