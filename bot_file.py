@@ -2442,14 +2442,15 @@ async def sub_approve(update: Update, context: ContextTypes.DEFAULT_TYPE):
     c_main.execute("UPDATE subscription_requests SET status='approved' WHERE id=?", (req_id,))
     conn_main.commit()
 
-    # تعديل رسالة الأدمن
-    try:
-        await query.edit_message_caption(
-            caption=query.message.caption + f"\n\n✅ *تم القبول بواسطة:* @{query.from_user.username or query.from_user.id}",
-            parse_mode="Markdown"
-        )
-    except Exception:
-        pass
+  # تعديل رسالة الأدمن وإخفاء الأزرار فوراً عند القبول
+        try:
+            await query.edit_message_text(
+                text=query.message.text + f"\n\n🟢 <b>[ تم قبول الطلب وتفعيل الاشتراك بنجاح ✅ ]</b>",
+                parse_mode="HTML",
+                reply_markup=None
+            )
+        except Exception as e:
+            print(f"خطأ في تحديث رسالة القبول: {e}")
 
     # إخطار المستخدم
     end_date = (datetime.now() + timedelta(days=days)).strftime("%Y-%m-%d")
