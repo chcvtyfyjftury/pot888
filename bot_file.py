@@ -7958,6 +7958,7 @@ def main():
     app.add_handler(singular_conv)
     app.add_handler(farm_conv)
     app.add_handler(sched_conv)
+    app.add_handler(CallbackQueryHandler(user_profile_menu, pattern="^user_profile$"))
     
     # معالجات إضافية
     app.add_handler(CallbackQueryHandler(main_menu, pattern="^main$"))
