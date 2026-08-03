@@ -460,30 +460,30 @@ def _build_fav_and_credfile_kb(platform_tag: str, game_id: int, user_id: int):
 AF_GAMES = [
     ("dice_dream", "🎲 Dice Dreams", "com.superplaystudios.dicedreams", "Hn5qYjVAaRNJYDcwF4LaWF", "🎲"),
     ("domino_dreams", "🃏 Domino Dreams", "com.screenshake.dominodreams", "Hn5qYjVAaRNJYDcwF4LaWF", "🃏"),
-    ("buzzle_chaos", "🎲 Buzzle Chaos", "com.global.pnck", "ZnhUvonKa6qF9xhgt7GcBQ", "🎲"),
-    ("coin_master", "🎲 Coin Master", "com.moonactive.coinmaster", "H3KjoCRVTiVgA5mWSAHtCe", "🎲"),
+    ("buzzle_chaos", "🧩 Buzzle Chaos", "com.global.pnck", "ZnHUvonKa6qF9xhgt7GcBQ", "🧩"),
+    ("coin_master", "🪙 Coin Master", "com.moonactive.coinmaster", "H3KjoCRVTiVgA5mWSAHtCe", "🪙"),
     ("royal_match", "👑 Royal Match", "com.dreamgames.royalmatch", "B27HnbGEcbWC2fv79DDhcb", "👑"),
-    ("merge_gardens", "🌺 Merge Gardens", "com.futureplay.mergematch", "nr8SibwpFjcKGBQNpDdttd", "🌺"),
-    ("highroller_vegas", "🎲 HIGHROLLER Vegas", "com.lynxgames.hrv", "sSpBC5SKPKEV8fbZJgw6vM", "🎲"),
+    ("merge_gardens", "🪴 Merge Gardens", "com.futureplay.mergematch", "nr8SibwpFJcKGBQNpDdtd", "🪴"),
+    ("highroller_vegas", "🎰 HIGHROLLER Vegas", "com.lynxgames.hrv", "sSpBC5SKPKEV8fbZJgw6vM", "🎰"),
     ("rock_n_cash", "💰 Rock N Cash Casino", "net.flysher.rockncash", "W5VWPj5fbCGABtk59TsmJQ", "💰"),
     ("coinchef", "🍳 COINCHEF", "com.FortuneMine.CuisineMaster", "im6mgZbZJsHKGVowkkxkGm", "🍳"),
     ("blackjack21", "🃏 Blackjack 21", "com.kamagames.blackjack", "YbczyDZZmXbxwpYYyJgqTQ", "🃏"),
-    ("sunshine_island", "🏝️ Sunshine Island", "com.newmoonproduction.sunshineisland", "FtaT5WH9rMJjJkMd4LfBCT", "🏝️"),
-    ("farmville3", "🌾 Farmville 3", "com.zynga.FarmVille2CountryEscape", "438VCPmX2ZLYvsDPfGLZXb", "🌾"),
-    ("disney_solitaire", "🎲 Disney Solitaire", "com.superplaystudios.disneysolitairedreams", "Hn5qYjVAaRNJYDcwF4LaWF", "🎲"),
-    ("matching_story", "🎲 Matching Story", "com.joycastle.mergematch", "v2w2tuNCNaBNXvFJgRGPRW", "🎲"),
-    ("nations_of_darkness", "🎲 Nations of Darkness", "com.allstarunion.nod", "x88hdqNmd8vALRmRMhgY4Q", "🎲"),
-    ("hero_wars", "🎲 Hero Wars", "com.nexters.herowars", "MGPcVAUzD9XqbwAY6q7KMf", "🎲"),
-    ("zombie_waves", "🧟 Zombie Waves", "com.ddup.zombiewaves.zw", "wiQMRPvGaAYTGBCgM5yN9N", "🧟"),
+    ("sunshine_island", "🌴 Sunshine Island", "com.newmoonproduction.sunshineisland", "FtaT5WH9rMJJkMd4LfBCT", "🌴"),
+    ("farmville3", "🌾 Farmville 3", "com.zynga.FarmVille2CountryEscape", "438VCpmX2ZLYvsDPfGLZXb", "🌾"),
+    ("disney_solitaire", "💎 Disney Solitaire", "com.superplaystudios.disneysolitairedreams", "Hn5qYjVAaRNJYDcwF4LaWF", "💎"),
+    ("matching_story", "📖 Matching Story", "com.joycastle.mergematch", "v2w2tuNCNaBNXvFJgRGPRW", "📖"),
+    ("nations_of_darkness", "🏰 Nations of Darkness", "com.allstarunion.nod", "x88hdqNmd8vALrMRMhgY4Q", "🏰"),
+    ("hero_wars", "🛡️ Hero Wars", "com.nexters.herowars", "MGPcVAuZd9XqbwAY6q7KMF", "🛡️"),
+    ("zombie_waves", "🧟 Zombie Waves", "com.ddup.zombiewaves.zw", "wiQMRPVgAAYTGBCgM5yn9N", "🧟"),
     ("Coin_Master_Board_Adventure", "⚔️ Coin Master - Board Adventure", "com.moonactive.cmboard", "H3KjoCRVTiVgA5mWSAHtCe", "⚔️"),
-    ("royal_farm", "🚜 Royal Farm", "com.ugo.play.free.farm.valley", "ktoVPgaiGM9AZhM5BFycVB", "🚜"),
+    ("royal_farm", "🧑‍🌾 Royal Farm", "com.ugo.play.free.farm.valley", "ktoVPgaiGM9AZhM5BFycVB", "🧑‍🌾"),
     ("idle_zombie_miner", "🧟 Idle Zombie Miner", "com.zombie.idleminertycoon", "Ko6tMi9uqZbPBgJsKCuAUd", "🧟"),
     ("travel_town", "✈️ Travel Town", "io.randomco.travel", "wizhvjciCuaDbAaR8KpZLn", "✈️"),
-    ("goodville", "🏡 Goodville", "com.goodville.goodgame", "MqrvZSKujKBZ4byRDHm5a4", "🏡"),
-    ("game_of_vampires", "🧛 Game of Vampires", "com.mechanist.vampire.aos", "ZCD7jvH8i9zt9ewanppetD", "🧛"),
+    ("goodville", "🏠 Goodville", "com.goodville.goodgame", "MqrvZSKujKBZ4byRDHm5a4", "🏠"),
+    ("game_of_vampires", "🥷 Game of Vampires", "com.mechanist.vampire.aos", "ZCD7jvH8i9zt9ewanppetD", "🥷"),
     ("UltimateHoldem", "🃏 Ultimate Hold'em", "com.kamagames.ultimpoker", "YbczyDZZmXbxwpYYyJgqTQ", "🃏"),
+    ("merge_studio", "🧩 Merge Studio", "com.paxiegames.mergestudio", "MaznYs97JTiqaqEwnZGZ5kHHPtFBv32miPk757BjyJvRMSFRutq0byS20d6MGrqnTwCa2nEGaPgz-PyUqBZDmUMnOkRPLp_6FRNK4c0XixJSNN1ngmuCU5sQyHwZuzBmzREzw9SvTl2GcSMhm0nCC4OYUBMtRtsslR5buxPo3bw", "🧩")
 ]
-
 for game in AF_GAMES:
     c_main.execute("INSERT OR IGNORE INTO games_af (name, display_name, package, dev_key, emoji) VALUES (?, ?, ?, ?, ?)", game)
 
@@ -631,7 +631,11 @@ def add_af_events():
                        (bj[0], "15level", "🃏 Level 15", "level", 0))
         c_main.execute("INSERT OR IGNORE INTO events_af (game_id, event_name, display_name, event_type, is_purchase) VALUES (?, ?, ?, ?, ?)", 
                        (bj[0], "5levelup", "🃏 Level 5", "level", 0))
-        
+     # Merge Studio
+    ms = c_main.execute("SELECT id FROM games_af WHERE name = 'merge_studio'").fetchone()
+    if ms:
+        c_main.execute("INSERT OR IGNORE INTO events_af (game_id, event_name, display_name, event_type, is_purchase) VALUES (?, ?, ?, ?, ?)",
+                       (ms[0], "af_level_achieved", "🧩 Level Completed", "level", 0))   
 add_af_events()
 
 # ==================== ألعاب Singular ====================
