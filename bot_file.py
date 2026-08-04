@@ -635,7 +635,21 @@ def add_af_events():
     ms = c_main.execute("SELECT id FROM games_af WHERE name = 'merge_studio'").fetchone()
     if ms:
         c_main.execute("INSERT OR IGNORE INTO events_af (game_id, event_name, display_name, event_type, is_purchase) VALUES (?, ?, ?, ?, ?)",
-                       (ms[0], "af_level_achieved", "🧩 Level Completed", "level", 0))   
+                       (ms[0], "af_level_achieved", "📌 Level", "level", 0))
+        c_main.execute("INSERT OR IGNORE INTO events_af (game_id, event_name, display_name, event_type, is_purchase) VALUES (?, ?, ?, ?, ?)",
+                       (ms[0], "af_purchase_gems_999_1", "📌 Purchase $9.99 Gems Package", "purchase", 1))
+        c_main.execute("INSERT OR IGNORE INTO events_af (game_id, event_name, display_name, event_type, is_purchase) VALUES (?, ?, ?, ?, ?)",
+                       (ms[0], "af_purchase_season_pass_1", "📌 Purchase the Season Pass", "purchase", 1))
+        c_main.execute("INSERT OR IGNORE INTO events_af (game_id, event_name, display_name, event_type, is_purchase) VALUES (?, ?, ?, ?, ?)",
+                       (ms[0], "af_purchase_gems_999_2", "📌 Purchase $9.99 Gems Package", "purchase", 1))
+        c_main.execute("INSERT OR IGNORE INTO events_af (game_id, event_name, display_name, event_type, is_purchase) VALUES (?, ?, ?, ?, ?)",
+                       (ms[0], "af_purchase_season_pass_2", "📌 Purchase the Season Pass", "purchase", 1))
+        c_main.execute("INSERT OR IGNORE INTO events_af (game_id, event_name, display_name, event_type, is_purchase) VALUES (?, ?, ?, ?, ?)",
+                       (ms[0], "af_purchase_gems_1999", "📌 Purchase $19.99 Gems Package", "purchase", 1))
+        c_main.execute("INSERT OR IGNORE INTO events_af (game_id, event_name, display_name, event_type, is_purchase) VALUES (?, ?, ?, ?, ?)",
+                       (ms[0], "af_purchase_gems_3999", "📌 Purchase $39.99 Gems Package", "purchase", 1))
+        c_main.execute("INSERT OR IGNORE INTO events_af (game_id, event_name, display_name, event_type, is_purchase) VALUES (?, ?, ?, ?, ?)",
+                       (ms[0], "af_purchase_gems_9999", "📌 Purchase $99.99 Gems Package", "purchase", 1))
 add_af_events()
 
 # ==================== ألعاب Singular ====================
