@@ -483,6 +483,7 @@ AF_GAMES = [
     ("game_of_vampires", "🥷 Game of Vampires", "com.mechanist.vampire.aos", "ZCD7jvH8i9zt9ewanppetD", "🥷"),
     ("UltimateHoldem", "🃏 Ultimate Hold'em", "com.kamagames.ultimpoker", "YbczyDZZmXbxwpYYyJgqTQ", "🃏"),
     ("merge_studio", "🧩 Merge Studio", "com.paxiegames.mergestudio", "MaznYs97JTiqaqEwnZGZ5kHHPtFBv32miPk757BjyJvRMSFRutq0byS20d6MGrqnTwCa2nEGaPgz-PyUqBZDmUMnOkRPLp_6FRNK4c0XixJSNN1ngmuCU5sQyHwZuzBmzREzw9SvTl2GcSMhm0nCC4OYUBMtRtsslR5buxPo3bw", "🧩")
+    ("yarn_loop", "🧶 Yarn Loop", "com.company.yarnloop", "TGm97uKTJF7qFCvREggWtf", "🧶"),
 ]
 for game in AF_GAMES:
     c_main.execute("INSERT OR IGNORE INTO games_af (name, display_name, package, dev_key, emoji) VALUES (?, ?, ?, ?, ?)", game)
@@ -650,6 +651,16 @@ def add_af_events():
                        (ms[0], "af_purchase_gems_3999", "📌 Purchase $39.99 Gems Package", "purchase", 1))
         c_main.execute("INSERT OR IGNORE INTO events_af (game_id, event_name, display_name, event_type, is_purchase) VALUES (?, ?, ?, ?, ?)",
                        (ms[0], "af_purchase_gems_9999", "📌 Purchase $99.99 Gems Package", "purchase", 1))
+     # Yarn Loop
+    yl = c_main.execute("SELECT id FROM games_af WHERE name = 'yarn_loop'").fetchone()
+    if yl:
+        # خيار إرسال لفل مخصص (يطلب من الزبون إدخال رقم اللفل)
+        c_main.execute("INSERT OR IGNORE INTO events_af (game_id, event_name, display_name, event_type, is_purchase) VALUES (?, ?, ?, ?, ?)",
+                       (yl[0], "custom_level", "🚀 إرسال AppsFlyer Level", "custom_level", 0))
+
+        # خيار إرسال الشحنات العامة (Purchase)
+        c_main.execute("INSERT OR IGNORE INTO events_af (game_id, event_name, display_name, event_type, is_purchase) VALUES (?, ?, ?, ?, ?)",
+                       (yl[0], "af_purchase", "💰 إرسال AppsFlyer Purchase", "purchase", 1))
 add_af_events()
 
 # ==================== ألعاب Singular ====================
