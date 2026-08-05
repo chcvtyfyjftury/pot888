@@ -482,7 +482,6 @@ AF_GAMES = [
     ("goodville", "🏠 Goodville", "com.goodville.goodgame", "MqrvZSKujKBZ4byRDHm5a4", "🏠"),
     ("game_of_vampires", "🥷 Game of Vampires", "com.mechanist.vampire.aos", "ZCD7jvH8i9zt9ewanppetD", "🥷"),
     ("UltimateHoldem", "🃏 Ultimate Hold'em", "com.kamagames.ultimpoker", "YbczyDZZmXbxwpYYyJgqTQ", "🃏"),
-    ("merge_studio", "🧩 Merge Studio", "com.paxiegames.mergestudio", "MaznYs97JTiqaqEwnZGZ5kHHPtFBv32miPk757BjyJvRMSFRutq0byS20d6MGrqnTwCa2nEGaPgz-PyUqBZDmUMnOkRPLp_6FRNK4c0XixJSNN1ngmuCU5sQyHwZuzBmzREzw9SvTl2GcSMhm0nCC4OYUBMtRtsslR5buxPo3bw", "🧩")
     ("yarn_loop", "🧶 Yarn Loop", "com.company.yarnloop", "TGm97uKTJF7qFCvREggWtf", "🧶"),
 ]
 for game in AF_GAMES:
