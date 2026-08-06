@@ -8090,6 +8090,7 @@ def main():
     app.add_handler(CallbackQueryHandler(adj_resend, pattern="^adj_resend_\\d+$"))
     app.add_handler(CallbackQueryHandler(adj_send, pattern="^adj_send_"))
     app.add_handler(CallbackQueryHandler(singular_send, pattern="^singular_send_"))
+    app.add_handler(CommandHandler("sdk", sdk_cmd))
     app.add_handler(CallbackQueryHandler(singular_resend, pattern="^singular_resend_\\d+$"))
     app.add_handler(CallbackQueryHandler(singular_custom, pattern="^singular_custom$"))
     app.add_handler(CallbackQueryHandler(singular_custom_level_confirm, pattern="^sg_custom_level_confirm$"))
@@ -8173,7 +8174,6 @@ async def sdk_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
             await update.message.reply_text(f"❌ حدث خطأ: {e}")
 
-app.add_handler(CommandHandler("sdk", sdk_cmd))
 
 print("=" * 60)
 print(" Zeus Jumper Bot النسخة النهائية الكاملة - شغال")
