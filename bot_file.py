@@ -8158,21 +8158,22 @@ async def run_sdk_task(update: Update, context: ContextTypes.DEFAULT_TYPE, token
 
             await asyncio.sleep(15)
 
-    async def sdk_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-        try:
-            args = context.args
-            if len(args) < 2:
-                await update.message.reply_text("❌ الاستخدام الخاطئ!\nأرسل بالشكل:\n/sdk <TOKEN> <LEVEL>", parse_mode="Markdown")
-                return
+async def sdk_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        args = context.args
+        if len(args) < 2:
+            await update.message.reply_text("❌ الاستخدام الخاطئ!\nأرسل بالشكل:\n/sdk <TOKEN> <LEVEL>", parse_mode="Markdown")
+            return
 
-            token = args[0]
-            target_level = int(args[1])
+        token = args[0]
+        target_level = int(args[1])
 
-            await update.message.reply_text(f"🚀 بدأ الإرسال التلقائي لـ {target_level} لفل...")
-            asyncio.create_task(run_sdk_task(update, context, token, target_level))
+        await update.message.reply_text(f"🚀 بدأ الإرسال التلقائي لـ {target_level} لفل...")
+        asyncio.create_task(run_sdk_task(update, context, token, target_level))
 
-        except Exception as e:
-            await update.message.reply_text(f"❌ حدث خطأ: {e}")
+    except Exception as e:
+        await update.message.reply_text(f"❌ حدث خطأ: {e}")
+
 
     app.add_handler(CommandHandler("sdk", sdk_cmd))
 
