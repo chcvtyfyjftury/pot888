@@ -8174,7 +8174,7 @@ async def sdk_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"❌ حدث خطأ: {e}")
 
 
-if name == "main":
+if __name__ == "__main__":
     import traceback
     try:
         print("=" * 60, flush=True)
