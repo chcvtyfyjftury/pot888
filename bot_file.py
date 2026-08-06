@@ -8175,6 +8175,10 @@ async def sdk_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         await update.message.reply_text(f"❌ حدث خطأ: {e}")
 
+
+def main():
+    # ... باقي معالجات البوت السابقة ...
+
     app.add_handler(CommandHandler("sdk", sdk_cmd))
 
     print("=" * 60)
@@ -8184,5 +8188,6 @@ async def sdk_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print("=" * 60)
     app.run_polling()
 
-if __name__ == "__main__":
+
+if name == "main":
     main()
