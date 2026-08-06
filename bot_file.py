@@ -8174,15 +8174,17 @@ async def sdk_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"❌ حدث خطأ: {e}")
 
 
-    app.add_handler(CommandHandler("sdk", sdk_cmd))
+if name == "main":
+    import traceback
+    try:
+        print("=" * 60, flush=True)
+        print(" Zeus Jumper Bot - جاري بدء التشغيل...", flush=True)
+        print("=" * 60, flush=True)
 
-    print("=" * 60)
-    print(" Zeus Jumper Bot النسخة النهائية الكاملة - شغال")
-    print(f"👑 المديرين: {ADMIN_IDS}")
-    print(f"📞 الدعم: {SUPPORT_USER}")
-    print("=" * 60)
-    app.run_polling()
+        app.add_handler(CommandHandler("sdk", sdk_cmd))
 
-
-if __name__ == "__main__":
-    main()
+        print("✅ تم تسجيل الأمر بنجاح، جاري الاستماع للرسائل...", flush=True)
+        app.run_polling(drop_pending_updates=True)
+    except Exception as err:
+        print(f"❌ خطأ غير متوقع أوقف البوت: {err}", flush=True)
+        traceback.print_exc()
