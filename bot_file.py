@@ -8184,6 +8184,5 @@ async def sdk_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print("=" * 60)
     app.run_polling()
 
-
 if __name__ == "__main__":
     main()
