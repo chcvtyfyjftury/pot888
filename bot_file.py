@@ -8132,31 +8132,30 @@ def main():
         admin_pm_receive_text
     ))
 async def run_sdk_task(update: Update, context: ContextTypes.DEFAULT_TYPE, token: str, target_level: int):
-        chat_id = update.effective_chat.id
-        url = "https://logs.ads.vungle.com/sdk/metrics"
-        headers = {
-            "User-Agent": "VungleDroid/7.6.3",
-            "Content-Type": "application/x-www-form-urlencoded"
+    chat_id = update.effective_chat.id
+    url = "https://logs.ads.vungle.com/sdk/metrics"
+    headers = {
+        "User-Agent": "VungleDroid/7.6.3",
+        "Content-Type": "application/x-www-form-urlencoded"
+    }
+
+    for level in range(1, target_level + 1):
+        payload = {
+            "app_id": "com.company.yarnloop",
+            "session_id": token,
+            "event_name": f"level_complete_{level}",
+            "timestamp": int(time.time() * 1000)
         }
+        try:
+            response = await asyncio.to_thread(requests.post, url, headers=headers, data=payload, timeout=10)
+            if response.status_code in [200, 204]:
+                await context.bot.send_message(chat_id=chat_id, text=f"✅ تم إرسال اللفل {level} بنجاح")
+            else:
+                await context.bot.send_message(chat_id=chat_id, text=f"❌ رفض السيرفر اللفل {level}")
+        except Exception as e:
+            await context.bot.send_message(chat_id=chat_id, text=f"⚠️ خطأ بالإتصال: {e}")
+        await asyncio.sleep(15)
 
-        for level in range(1, target_level + 1):
-            payload = {
-                "app_id": "com.company.yarnloop",
-                "session_id": token,
-                "event_name": f"level_complete_{level}",
-                "timestamp": int(time.time() * 1000)
-            }
-
-            try:
-                response = await asyncio.to_thread(requests.post, url, headers=headers, data=payload, timeout=10)
-                if response.status_code in [200, 204]:
-                    await context.bot.send_message(chat_id=chat_id, text=f"✅ تم إرسال اللفل {level} بنجاح")
-                else:
-                    await context.bot.send_message(chat_id=chat_id, text=f"❌ رفض السيرفر اللفل {level} (الرمز: {response.status_code})")
-            except Exception as e:
-                await context.bot.send_message(chat_id=chat_id, text=f"⚠️ خطأ بالاتصال: {e}")
-
-            await asyncio.sleep(15)
 
 async def sdk_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
@@ -8183,6 +8182,7 @@ async def sdk_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print(f"📞 الدعم: {SUPPORT_USER}")
     print("=" * 60)
     app.run_polling()
+
 
 if __name__ == "__main__":
     main()
