@@ -8075,7 +8075,6 @@ def main():
     app.add_handler(singular_conv)
     app.add_handler(farm_conv)
     app.add_handler(sched_conv)
-    app.add_handler(CommandHandler("sdk", sdk_cmd))
     app.add_handler(CallbackQueryHandler(user_profile_menu, pattern="^user_profile$"))
     
     # معالجات إضافية
@@ -8172,13 +8171,16 @@ async def sdk_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         asyncio.create_task(run_sdk_task(update, context, token, target_level))
 
     except Exception as e:
-        await update.message.reply_text(f"❌ حدث خطأ: {e}")
-    print("=" * 60)
-    print("✅ Zeus Jamper Bot شغال - النسخة النهائية الكاملة")
-    print(f"👑 المديرين: {ADMIN_IDS}")
-    print(f"📞 الدعم: {SUPPORT_USER}")
-    print("=" * 60)
-    app.run_polling()
+            await update.message.reply_text(f"❌ حدث خطأ: {e}")
+
+app.add_handler(CommandHandler("sdk", sdk_cmd))
+
+print("=" * 60)
+print(" Zeus Jumper Bot النسخة النهائية الكاملة - شغال")
+print(f"👑 المديرين: {ADMIN_IDS}")
+print(f"📞 الدعم: {SUPPORT_USER}")
+print("=" * 60)
+app.run_polling()
 
 if __name__ == "__main__":
     main()
