@@ -8132,47 +8132,48 @@ def main():
         admin_pm_receive_text
     ))
 async def run_sdk_task(update: Update, context: ContextTypes.DEFAULT_TYPE, token: str, target_level: int):
-        chat_id = update.effective_chat.id
-        url = "https://logs.ads.vungle.com/sdk/metrics"
-        headers = {
-            "User-Agent": "VungleDroid/7.6.3",
-            "Content-Type": "application/x-www-form-urlencoded"
+    chat_id = update.effective_chat.id
+    url = "https://logs.ads.vungle.com/sdk/metrics"
+    headers = {
+        "User-Agent": "VungleDroid/7.6.3",
+        "Content-Type": "application/x-www-form-urlencoded"
+    }
+
+    for level in range(1, target_level + 1):
+        payload = {
+            "app_id": "com.company.yarnloop",
+            "session_id": token,
+            "event_name": f"level_complete_{level}",
+            "timestamp": int(time.time() * 1000)
         }
 
-        for level in range(1, target_level + 1):
-            payload = {
-                "app_id": "com.company.yarnloop",
-                "session_id": token,
-                "event_name": f"level_complete_{level}",
-                "timestamp": int(time.time() * 1000)
-            }
-
-            try:
-                response = await asyncio.to_thread(requests.post, url, headers=headers, data=payload, timeout=10)
-                if response.status_code in [200, 204]:
-                    await context.bot.send_message(chat_id=chat_id, text=f"✅ تم إرسال اللفل {level} بنجاح")
-                else:
-                    await context.bot.send_message(chat_id=chat_id, text=f"❌ رفض السيرفر اللفل {level} (الرمز: {response.status_code})")
-            except Exception as e:
-                await context.bot.send_message(chat_id=chat_id, text=f"⚠️ خطأ بالاتصال: {e}")
-
-            await asyncio.sleep(15)
-
-    async def sdk_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
-            args = context.args
-            if len(args) < 2:
-                await update.message.reply_text("❌ الاستخدام الخاطئ!\nأرسل بالشكل:\n/sdk <TOKEN> <LEVEL>", parse_mode="Markdown")
-                return
-
-            token = args[0]
-            target_level = int(args[1])
-
-            await update.message.reply_text(f"🚀 بدأ الإرسال التلقائي لـ {target_level} لفل...")
-            asyncio.create_task(run_sdk_task(update, context, token, target_level))
-
+            response = await asyncio.to_thread(requests.post, url, headers=headers, data=payload, timeout=10)
+            if response.status_code in [200, 204]:
+                await context.bot.send_message(chat_id=chat_id, text=f"✅ تم إرسال اللفل {level} بنجاح")
+            else:
+                await context.bot.send_message(chat_id=chat_id, text=f"❌ رفض السيرفر اللفل {level} (الرمز: {response.status_code})")
         except Exception as e:
-            await update.message.reply_text(f"❌ حدث خطأ: {e}")
+            await context.bot.send_message(chat_id=chat_id, text=f"⚠️ خطأ بالاتصال: {e}")
+
+        await asyncio.sleep(15)
+
+
+async def sdk_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        args = context.args
+        if len(args) < 2:
+            await update.message.reply_text("❌ الاستخدام الخاطئ!\nأرسل بالشكل:\n/sdk <TOKEN> <LEVEL>", parse_mode="Markdown")
+            return
+
+        token = args[0]
+        target_level = int(args[1])
+
+        await update.message.reply_text(f"🚀 بدأ الإرسال التلقائي لـ {target_level} لفل...")
+        asyncio.create_task(run_sdk_task(update, context, token, target_level))
+
+    except Exception as e:
+        await update.message.reply_text(f"❌ حدث خطأ: {e}")
 
     app.add_handler(CommandHandler("sdk", sdk_cmd))
 
