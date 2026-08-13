@@ -8180,24 +8180,64 @@ async def sdk_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # =========================================================
 #  2. دالة التشغيل الرئيسية (تأكد أن اسمها def main)
 # =========================================================
+# ====================================================
+# 1. المعالج الشامل الذكي لكل أزرار البوت وزر "رجوع"
+# ====================================================
+async def global_callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    if not query:
+        return
+    
+    try:
+        await query.answer()
+    except Exception:
+        pass
+
+    data = query.data
+
+    # التعامل مع زر "رجوع" والعودة للقائمة الرئيسية
+    if data in ["main", "back", "home"]:
+        for main_func in ['main_menu', 'show_main_menu', 'start_menu', 'clean_start', 'start']:
+            if main_func in globals() and callable(globals()[main_func]):
+                try:
+                    return await globals()[main_func](update, context)
+                except Exception as e:
+                    print(f"[DEBUG] Error going back to main: {e}", flush=True)
+
+    # البحث التلقائي عن الدالة المطابقة للزر المضغوط
+    possible_names = [
+        data,
+        f"{data}_menu",
+        f"{data}_handler",
+        f"handle_{data}",
+        f"{data}_cmd"
+    ]
+
+    for func_name in possible_names:
+        if func_name in globals() and callable(globals()[func_name]):
+            try:
+                return await globals()[func_name](update, context)
+            except Exception as e:
+                print(f"[DEBUG] Error executing {func_name}: {e}", flush=True)
+
+    print(f"[DEBUG] Unhandled button data: '{data}'", flush=True)
+
+
+# ====================================================
+# 2. دالة التشغيل الرئيسية
+# ====================================================
 def main():
     app = Application.builder().token(BOT_TOKEN).build()
 
-    # 1. تسجيل أمر /start
+    # تسجيل المعالج الشامل لجميع الأزرار وبضمنها زر "رجوع"
+    app.add_handler(CallbackQueryHandler(global_callback_handler))
+
+    # تسجيل الأوامر النصية
     app.add_handler(CommandHandler("start", start))
+    if 'clean_start' in globals(): app.add_handler(CommandHandler("clean", clean_start))
+    app.add_handler(CommandHandler("sdk", sdk_cmd))
 
-    # 2. تسجيل معالجات الأزرار والقوائم (كي تعمل عند الضغط عليها)
-    if 'jumper_farm_menu' in globals():
-        app.add_handler(CallbackQueryHandler(jumper_farm_menu, pattern="^jumper_farm"))
-    if 'user_profile_menu' in globals():
-        app.add_handler(CallbackQueryHandler(user_profile_menu, pattern="^user_profile"))
-
-    # معالج عام لأي أزرار فرعية أخرى
-    if 'handle_callback' in globals(): app.add_handler(CallbackQueryHandler(handle_callback))
-    elif 'button_handler' in globals(): app.add_handler(CallbackQueryHandler(button_handler))
-    elif 'callback_handler' in globals(): app.add_handler(CallbackQueryHandler(callback_handler))
-
-    # 3. تسجيل محادثات الأدمن
+    # تسجيل محادثات وقوائم الأدمن
     if 'admin_add_game_conv' in globals(): app.add_handler(admin_add_game_conv)
     if 'admin_delete_game_conv' in globals(): app.add_handler(admin_delete_game_conv)
     if 'admin_add_event_conv' in globals(): app.add_handler(admin_add_event_conv)
@@ -8206,9 +8246,6 @@ def main():
     
     if 'admin_pm_receive_text' in globals():
         app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, admin_pm_receive_text))
-
-    # 4. تسجيل أمر /sdk الجديد
-    app.add_handler(CommandHandler("sdk", sdk_cmd))
 
     print("=" * 60, flush=True)
     print(" Zeus Jumper Bot - شغال بنجاح 🚀", flush=True)
