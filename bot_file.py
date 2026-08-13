@@ -2360,6 +2360,7 @@ async def sub_select_payment(update: Update, context: ContextTypes.DEFAULT_TYPE)
     plan_key = context.user_data.get("sub_plan_key", "")
     context.user_data["sub_method_key"] = method_key
     context.user_data["sub_method_name"] = mn
+    context.user_data["awaiting_proof"] = True
 
     addr_line = f"📌 *العنوان/الرقم:*\n`{addr}`\n\n" if addr else ""
     kb = [[InlineKeyboardButton("🔙 رجوع", callback_data=f"sub_select_{plan_key}")]]
@@ -8258,7 +8259,8 @@ def main():
     if 'admin_add_event_conv' in globals(): app.add_handler(admin_add_event_conv)
     if 'admin_delete_event_conv' in globals(): app.add_handler(admin_delete_event_conv)
     if 'cred_save_conv' in globals(): app.add_handler(cred_save_conv)
-    
+    if 'sub_receive_proof' in globals():
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, sub_receive_proof))
     if 'admin_pm_receive_text' in globals():
         app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, admin_pm_receive_text))
 
