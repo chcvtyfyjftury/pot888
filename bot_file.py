@@ -8177,11 +8177,8 @@ async def sdk_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"❌ حدث خطأ: {e}")
 
 
-# =========================================================
-#  2. دالة التشغيل الرئيسية (تأكد أن اسمها def main)
-# =========================================================
 # ====================================================
-# 1. المعالج الشامل الذكي لكل أزرار البوت وزر "رجوع"
+# المعالج الشامل الذكي المحدث (يشمل الاشتراكات والشراء)
 # ====================================================
 async def global_callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -8195,7 +8192,7 @@ async def global_callback_handler(update: Update, context: ContextTypes.DEFAULT_
 
     data = query.data
 
-    # التعامل مع زر "رجوع" والعودة للقائمة الرئيسية
+    # 1. التعامل مع زر "رجوع" والعودة للقائمة الرئيسية
     if data in ["main", "back", "home"]:
         for main_func in ['main_menu', 'show_main_menu', 'start_menu', 'clean_start', 'start']:
             if main_func in globals() and callable(globals()[main_func]):
@@ -8204,13 +8201,29 @@ async def global_callback_handler(update: Update, context: ContextTypes.DEFAULT_
                 except Exception as e:
                     print(f"[DEBUG] Error going back to main: {e}", flush=True)
 
-    # البحث التلقائي عن الدالة المطابقة للزر المضغوط
+    # 2. معالجة أزرار باقات الاشتراك والشراء (sub_ / buy_ / plan_)
+    if any(data.startswith(prefix) for prefix in ["sub", "buy", "plan", "pay"]):
+        sub_funcs = [
+            'buy_subscription', 'handle_subscription', 'sub_callback', 
+            'process_subscription', 'buy_plan', 'sub_plans', 'handle_buy',
+            'payment_handler', 'subscription_handler', 'subscribe_menu'
+        ]
+        for func_name in sub_funcs:
+            if func_name in globals() and callable(globals()[func_name]):
+                try:
+                    return await globals()[func_name](update, context)
+                except Exception as e:
+                    print(f"[DEBUG] Error executing {func_name}: {e}", flush=True)
+
+    # 3. البحث التلقائي عن الدالة المطابقة للزر المضغوط
     possible_names = [
         data,
         f"{data}_menu",
         f"{data}_handler",
         f"handle_{data}",
-        f"{data}_cmd"
+        f"{data}_cmd",
+        f"buy_{data}",
+        f"sub_{data}"
     ]
 
     for func_name in possible_names:
@@ -8221,7 +8234,6 @@ async def global_callback_handler(update: Update, context: ContextTypes.DEFAULT_
                 print(f"[DEBUG] Error executing {func_name}: {e}", flush=True)
 
     print(f"[DEBUG] Unhandled button data: '{data}'", flush=True)
-
 
 # ====================================================
 # 2. دالة التشغيل الرئيسية
