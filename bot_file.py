@@ -8260,7 +8260,7 @@ def main():
     if 'admin_delete_event_conv' in globals(): app.add_handler(admin_delete_event_conv)
     if 'cred_save_conv' in globals(): app.add_handler(cred_save_conv)
     if 'sub_receive_proof' in globals():
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, sub_receive_proof))
+        app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, sub_receive_proof))
     if 'admin_pm_receive_text' in globals():
         app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, admin_pm_receive_text))
 
