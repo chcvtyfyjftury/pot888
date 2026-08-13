@@ -8178,7 +8178,7 @@ async def sdk_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # ====================================================
-# المعالج الشامل الذكي المعدل (معالجة طرق الدفع وسداد الاشتراكات)
+# المعالج الشامل الذكي (شامل أزرار شام كاش و USDT)
 # ====================================================
 async def global_callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -8201,7 +8201,7 @@ async def global_callback_handler(update: Update, context: ContextTypes.DEFAULT_
                 except Exception as e:
                     print(f"[DEBUG] Error going back to main: {e}", flush=True)
 
-    # 2. زر فتح قائمة خطط الاشتراك
+    # 2. قائمة باقات الاشتراك
     if data in ["sub_plans", "plans", "subscribe", "sub_menu", "show_plans"]:
         if 'sub_plans' in globals() and callable(globals()['sub_plans']):
             try:
@@ -8209,7 +8209,7 @@ async def global_callback_handler(update: Update, context: ContextTypes.DEFAULT_
             except Exception as e:
                 print(f"[DEBUG] Error executing sub_plans: {e}", flush=True)
 
-    # 3. معالجة اختيار الباقة (شهرية / أسبوعية / يومية)
+    # 3. اختيار الباقة (شهرية / أسبوعية / يومية)
     if data.startswith("sub_select_"):
         if 'sub_select_plan' in globals() and callable(globals()['sub_select_plan']):
             try:
@@ -8217,7 +8217,7 @@ async def global_callback_handler(update: Update, context: ContextTypes.DEFAULT_
             except Exception as e:
                 print(f"[DEBUG] Error executing sub_select_plan: {e}", flush=True)
 
-    # 4. زر الرجوع داخل صفحة الاشتراكات
+    # 4. زر الرجوع للاشتراكات
     if data == "sub_back":
         if 'sub_plans' in globals() and callable(globals()['sub_plans']):
             try:
@@ -8225,21 +8225,24 @@ async def global_callback_handler(update: Update, context: ContextTypes.DEFAULT_
             except Exception as e:
                 print(f"[DEBUG] Error executing sub_plans: {e}", flush=True)
 
-    # 5. البحث التلقائي الدقيق عن دالة الزر (يشمل أزرار الشام كاش و USDT BEP20)
-    clean_key = data.replace("sub_pay_", "").replace("sub_", "").replace("pay_", "")
+    # 5. معالجة أزرار طرق الدفع (شام كاش / USDT / إلخ)
+    pay_funcs = [
+        'sub_pay', 'sub_payment', 'handle_payment', 'process_payment',
+        'sub_pay_plan', 'pay_plan', 'payment_choice', 'sub_pay_method',
+        'sub_pay_select', 'handle_pay', 'pay_selected'
+    ]
     
+    if any(keyword in data for keyword in ["pay", "shamcash", "usdt", "bep20", "sub_pay"]):
+        for func_name in pay_funcs + [data, f"{data}_handler", f"handle_{data}"]:
+            if func_name in globals() and callable(globals()[func_name]):
+                try:
+                    return await globals()[func_name](update, context)
+                except Exception as e:
+                    print(f"[DEBUG] Error executing {func_name}: {e}", flush=True)
+
+    # 6. البحث التلقائي العام عن أي دالة مطابقة
     possible_names = [
-        data,
-        f"{data}_menu",
-        f"{data}_handler",
-        f"handle_{data}",
-        f"sub_pay_{clean_key}",
-        f"pay_{clean_key}",
-        f"handle_pay_{clean_key}",
-        f"process_{clean_key}",
-        'sub_payment_handler',
-        'handle_payment',
-        'process_payment'
+        data, f"{data}_menu", f"{data}_handler", f"handle_{data}", f"{data}_cmd"
     ]
 
     for func_name in possible_names:
