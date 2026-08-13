@@ -8178,7 +8178,7 @@ async def sdk_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # ====================================================
-# المعالج الشامل الذكي (شامل أزرار شام كاش و USDT)
+# المعالج الشامل الذكي النهائي (ربط دقيق لدالة sub_select_payment)
 # ====================================================
 async def global_callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -8192,7 +8192,31 @@ async def global_callback_handler(update: Update, context: ContextTypes.DEFAULT_
 
     data = query.data
 
-    # 1. زر "رجوع" والعودة للقائمة الرئيسية
+    # 1. معالجة اختيار طريقة الدفع (شام كاش / USDT)
+    if data.startswith("sub_pay_"):
+        if 'sub_select_payment' in globals() and callable(globals()['sub_select_payment']):
+            try:
+                return await globals()['sub_select_payment'](update, context)
+            except Exception as e:
+                print(f"[DEBUG] Error executing sub_select_payment: {e}", flush=True)
+
+    # 2. معالجة اختيار باقة الاشتراك (شهرية / أسبوعية / يومية)
+    if data.startswith("sub_select_"):
+        if 'sub_select_plan' in globals() and callable(globals()['sub_select_plan']):
+            try:
+                return await globals()['sub_select_plan'](update, context)
+            except Exception as e:
+                print(f"[DEBUG] Error executing sub_select_plan: {e}", flush=True)
+
+    # 3. عرض قائمة الخطط (زر خطط الاشتراك أو زر رجوع داخل القائمة)
+    if data in ["sub_plans", "plans", "subscribe", "sub_menu", "show_plans", "sub_back"]:
+        if 'sub_plans' in globals() and callable(globals()['sub_plans']):
+            try:
+                return await globals()['sub_plans'](update, context)
+            except Exception as e:
+                print(f"[DEBUG] Error executing sub_plans: {e}", flush=True)
+
+    # 4. العودة للقائمة الرئيسية
     if data in ["main", "back", "home", "main_menu"]:
         for main_func in ['main_menu', 'show_main_menu', 'start_menu', 'clean_start', 'start']:
             if main_func in globals() and callable(globals()[main_func]):
@@ -8201,46 +8225,7 @@ async def global_callback_handler(update: Update, context: ContextTypes.DEFAULT_
                 except Exception as e:
                     print(f"[DEBUG] Error going back to main: {e}", flush=True)
 
-    # 2. قائمة باقات الاشتراك
-    if data in ["sub_plans", "plans", "subscribe", "sub_menu", "show_plans"]:
-        if 'sub_plans' in globals() and callable(globals()['sub_plans']):
-            try:
-                return await globals()['sub_plans'](update, context)
-            except Exception as e:
-                print(f"[DEBUG] Error executing sub_plans: {e}", flush=True)
-
-    # 3. اختيار الباقة (شهرية / أسبوعية / يومية)
-    if data.startswith("sub_select_"):
-        if 'sub_select_plan' in globals() and callable(globals()['sub_select_plan']):
-            try:
-                return await globals()['sub_select_plan'](update, context)
-            except Exception as e:
-                print(f"[DEBUG] Error executing sub_select_plan: {e}", flush=True)
-
-    # 4. زر الرجوع للاشتراكات
-    if data == "sub_back":
-        if 'sub_plans' in globals() and callable(globals()['sub_plans']):
-            try:
-                return await globals()['sub_plans'](update, context)
-            except Exception as e:
-                print(f"[DEBUG] Error executing sub_plans: {e}", flush=True)
-
-    # 5. معالجة أزرار طرق الدفع (شام كاش / USDT / إلخ)
-    pay_funcs = [
-        'sub_pay', 'sub_payment', 'handle_payment', 'process_payment',
-        'sub_pay_plan', 'pay_plan', 'payment_choice', 'sub_pay_method',
-        'sub_pay_select', 'handle_pay', 'pay_selected'
-    ]
-    
-    if any(keyword in data for keyword in ["pay", "shamcash", "usdt", "bep20", "sub_pay"]):
-        for func_name in pay_funcs + [data, f"{data}_handler", f"handle_{data}"]:
-            if func_name in globals() and callable(globals()[func_name]):
-                try:
-                    return await globals()[func_name](update, context)
-                except Exception as e:
-                    print(f"[DEBUG] Error executing {func_name}: {e}", flush=True)
-
-    # 6. البحث التلقائي العام عن أي دالة مطابقة
+    # 5. بحث تلقائي عام لأي أزرار أخرى
     possible_names = [
         data, f"{data}_menu", f"{data}_handler", f"handle_{data}", f"{data}_cmd"
     ]
