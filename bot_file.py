@@ -2518,29 +2518,29 @@ async def sub_reject(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.answer("❌ الطلب غير موجود أو تمت معالجته مسبقاً", show_alert=True)
         return
 
-    user_id, uname, name, plan_key = req
+   user_id, uname, name, plan_key = req
     c_main.execute("UPDATE subscription_requests SET status='rejected' WHERE id=?", (req_id,))
     conn_main.commit()
 
     try:
-       await query.edit_message_text(
-           text=query.message.text + "\n\n❌ [ تم رفض هذا الطلب ]",
-           reply_markup=None
+        await query.edit_message_text(
+            text=query.message.text + "\n\n❌ [ تم رفض هذا الطلب ]",
+            reply_markup=None
         )
     except Exception:
-    pass
+        pass
 
     try:
         await query.get_bot().send_message(
             chat_id=user_id,
             text=(
                 f"❌ *للأسف، تم رفض طلب اشتراكك.*\n\n"
-                f"يرجى التواصل مع الدعم للمزيد من المعلومات:\n📞 {SUPPORT_USER}"
+                f"📞 {SUPPORT_USER} :يرجى التواصل مع الدعم للمزيد من المعلومات"
             ),
             parse_mode="Markdown"
         )
     except Exception as e:
-        logger.error(f"خطأ في إرسال إشعار الرفض: {e}")
+        logger.error(f"{e} :خطأ في إرسال إشعار الرفض")
 
 
 async def sub_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
