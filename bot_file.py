@@ -2451,54 +2451,94 @@ async def sub_receive_proof(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def sub_approve(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """موافقة الأدمن على طلب الاشتراك"""
     query = update.callback_query
-    await query.answer()
+    try:
+        await query.answer()
+    except Exception:
+        pass
+
     if not is_admin(query.from_user.id):
-        await query.answer("❌ غير مصرح", show_alert=True)
+        await query.answer("❌ غير مصرح لك استخدام هذا الزر", show_alert=True)
         return
 
-    req_id = int(query.data.replace("sub_approve_", ""))
-    req = c_main.execute(
-        "SELECT user_id, username, name, plan, plan_price, plan_days, payment_method FROM subscription_requests WHERE id=? AND status='pending'",
-        (req_id,)
-    ).fetchone()
-    if not req:
-        await query.answer("❌ الطلب غير موجود أو تمت معالجته مسبقاً", show_alert=True)
-        return
-
-    user_id, uname, name, plan_key, price, days, method = req
-    plan_info = SUBSCRIPTION_PLANS.get(plan_key, {})
-    plan_name = plan_info.get("name", plan_key)
-    if not days:
-        days = plan_info.get("days", 30)
-
-    activate_subscription(user_id, uname or "", name or "", plan_key, days, query.from_user.id)
-    c_main.execute("UPDATE subscription_requests SET status='approved' WHERE id=?", (req_id,))
-    conn_main.commit()
-
-  # تعديل رسالة الأدمن وإخفاء الأزرار فوراً عند القبول
     try:
-        await query.edit_message_text(
-            text=query.message.text + "\n\n🟢 [ تم قبول الطلب وتفعيل الاشتراك بنجاح ]",
-            reply_markup=None
-        )
-    except Exception as e:
-        print(f"خطأ في تحديث رسالة القبول: {e}")
+        req_id = int(query.data.replace("sub_approve_", ""))
+        
+        # 1. جلب البيانات الأساسية للطلب
+        req = c_main.execute(
+            "SELECT user_id, username, name, plan FROM subscription_requests WHERE id=?",
+            (req_id,)
+        ).fetchone()
 
-    # إخطار المستخدم
-    end_date = (datetime.now() + timedelta(days=days)).strftime("%Y-%m-%d")
-    try:
-        await query.get_bot().send_message(
-            chat_id=user_id,
-            text=(
+        if not req:
+            await query.answer("❌ الطلب غير موجود أو تم تحويله مسبقاً", show_alert=True)
+            return
+
+        user_id, uname, name, plan_key = req[0], req[1], req[2], req[3]
+
+        # 2. تحديد مدة الباقة واسمها وسعرها (24 ساعة للباقة اليومية)
+        plan_key_str = str(plan_key).lower()
+        if 'daily' in plan_key_str or 'day' in plan_key_str or 'يوم' in plan_key_str:
+            days = 1
+            plan_name = "يومية"
+            price = "$1"
+        elif 'weekly' in plan_key_str or 'week' in plan_key_str or 'أسبوع' in plan_key_str:
+            days = 7
+            plan_name = "أسبوعية"
+            price = "$5"
+        elif 'monthly' in plan_key_str or 'month' in plan_key_str or 'شهر' in plan_key_str:
+            days = 30
+            plan_name = "شهرية"
+            price = "$15"
+        else:
+            days = 1
+            plan_name = str(plan_key)
+            price = ""
+
+        # حساب تاريخ ووقت الانتهاء بعد عدد الأيام المحددة (مثلاً بعد 24 ساعة تماماً من الآن)
+        end_datetime = datetime.now() + timedelta(days=days)
+        end_date = end_datetime.strftime("%Y-%m-%d %H:%M")
+
+        # 3. تحديث حالة الطلب في قاعدة البيانات
+        c_main.execute("UPDATE subscription_requests SET status='approved' WHERE id=?", (req_id,))
+        conn_main.commit()
+
+        # 4. تشغيل دالة التفعيل إن وجدت
+        if 'activate_subscription' in globals() and callable(globals()['activate_subscription']):
+            try:
+                activate_subscription(user_id, uname or "", name or "", plan_key, days, query.from_user.id)
+            except Exception as act_err:
+                print(f"[ERROR in activate_subscription]: {act_err}", flush=True)
+
+        # 5. تعديل نص الإشعار عند الأدمن وإخفاء الأزرار
+        try:
+            await query.edit_message_text(
+                text=query.message.text + "\n\n🟢 [ تم قبول الطلب وتفعيل الاشتراك بنجاح ]",
+                reply_markup=None
+            )
+        except Exception as e:
+            print(f"خطأ في تحديث رسالة القبول: {e}")
+
+        # 6. إرسال الرسالة المنسقة للزبون تماماً كما في الصورة
+        try:
+            user_msg = (
                 f"🎉 *تم تفعيل اشتراكك!*\n\n"
-                f"📦 *الباقة:* {plan_name} ─ {price}\n"
+                f"📦 *الباقة:* {plan_name} {f'- {price}' if price else ''}\n"
                 f"📅 *تاريخ الانتهاء:* {end_date}\n\n"
                 f"يمكنك الآن استخدام البوت. اضغط /start"
-            ),
-            parse_mode="Markdown"
-        )
+            )
+            await query.get_bot().send_message(
+                chat_id=user_id,
+                text=user_msg,
+                parse_mode="Markdown"
+            )
+        except Exception as e:
+            logger.error(f"{e} :خطأ في إرسال إشعار القبول")
+
+        await query.answer("✅ تم القبول والتفعيل بنجاح!", show_alert=True)
+
     except Exception as e:
-        logger.error(f"خطأ في إرسال إشعار القبول: {e}")
+        print(f"[ERROR in sub_approve]: {e}", flush=True)
+        await query.answer(f"⚠️ حدث خطأ أثناء التفعيل:\n{e}", show_alert=True)
 
 
 async def sub_reject(update: Update, context: ContextTypes.DEFAULT_TYPE):
