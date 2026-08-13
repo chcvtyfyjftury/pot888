@@ -8178,7 +8178,7 @@ async def sdk_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # ====================================================
-# المعالج الشامل الذكي (شامل زر خطط الاشتراك)
+# المعالج الشامل الذكي المعدل (معالجة طرق الدفع وسداد الاشتراكات)
 # ====================================================
 async def global_callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -8192,31 +8192,7 @@ async def global_callback_handler(update: Update, context: ContextTypes.DEFAULT_
 
     data = query.data
 
-    # 1. فتح قائمة خطط الاشتراك (زر 💳 خطط الاشتراك)
-    if data in ["sub_plans", "plans", "subscribe", "sub_menu", "show_plans", "subscription", "buy"]:
-        if 'sub_plans' in globals() and callable(globals()['sub_plans']):
-            try:
-                return await globals()['sub_plans'](update, context)
-            except Exception as e:
-                print(f"[DEBUG] Error executing sub_plans: {e}", flush=True)
-
-    # 2. معالجة اختيار باقة معينة (اليومية / الأسبوعية / الشهرية)
-    if data.startswith("sub_select_"):
-        if 'sub_select_plan' in globals() and callable(globals()['sub_select_plan']):
-            try:
-                return await globals()['sub_select_plan'](update, context)
-            except Exception as e:
-                print(f"[DEBUG] Error executing sub_select_plan: {e}", flush=True)
-
-    # 3. معالجة زر الرجوع داخل صفحة الاشتراكات (sub_back)
-    if data == "sub_back":
-        if 'sub_plans' in globals() and callable(globals()['sub_plans']):
-            try:
-                return await globals()['sub_plans'](update, context)
-            except Exception as e:
-                print(f"[DEBUG] Error executing sub_plans: {e}", flush=True)
-
-    # 4. معالجة زر "رجوع" للقائمة الرئيسية
+    # 1. زر "رجوع" والعودة للقائمة الرئيسية
     if data in ["main", "back", "home", "main_menu"]:
         for main_func in ['main_menu', 'show_main_menu', 'start_menu', 'clean_start', 'start']:
             if main_func in globals() and callable(globals()[main_func]):
@@ -8225,18 +8201,45 @@ async def global_callback_handler(update: Update, context: ContextTypes.DEFAULT_
                 except Exception as e:
                     print(f"[DEBUG] Error going back to main: {e}", flush=True)
 
-    # 5. معالجة عامة لأي أمر يخص الاشتراكات أو الشراء
-    if any(keyword in data for keyword in ["sub", "plan", "buy", "pay"]):
-        for func_name in ['sub_plans', 'sub_select_plan', 'buy_subscription', 'handle_subscription']:
-            if func_name in globals() and callable(globals()[func_name]):
-                try:
-                    return await globals()[func_name](update, context)
-                except Exception as e:
-                    print(f"[DEBUG] Error executing {func_name}: {e}", flush=True)
+    # 2. زر فتح قائمة خطط الاشتراك
+    if data in ["sub_plans", "plans", "subscribe", "sub_menu", "show_plans"]:
+        if 'sub_plans' in globals() and callable(globals()['sub_plans']):
+            try:
+                return await globals()['sub_plans'](update, context)
+            except Exception as e:
+                print(f"[DEBUG] Error executing sub_plans: {e}", flush=True)
 
-    # 6. البحث التلقائي العام عن أي دالة بنفس اسم الـ callback_data
+    # 3. معالجة اختيار الباقة (شهرية / أسبوعية / يومية)
+    if data.startswith("sub_select_"):
+        if 'sub_select_plan' in globals() and callable(globals()['sub_select_plan']):
+            try:
+                return await globals()['sub_select_plan'](update, context)
+            except Exception as e:
+                print(f"[DEBUG] Error executing sub_select_plan: {e}", flush=True)
+
+    # 4. زر الرجوع داخل صفحة الاشتراكات
+    if data == "sub_back":
+        if 'sub_plans' in globals() and callable(globals()['sub_plans']):
+            try:
+                return await globals()['sub_plans'](update, context)
+            except Exception as e:
+                print(f"[DEBUG] Error executing sub_plans: {e}", flush=True)
+
+    # 5. البحث التلقائي الدقيق عن دالة الزر (يشمل أزرار الشام كاش و USDT BEP20)
+    clean_key = data.replace("sub_pay_", "").replace("sub_", "").replace("pay_", "")
+    
     possible_names = [
-        data, f"{data}_menu", f"{data}_handler", f"handle_{data}", f"{data}_cmd"
+        data,
+        f"{data}_menu",
+        f"{data}_handler",
+        f"handle_{data}",
+        f"sub_pay_{clean_key}",
+        f"pay_{clean_key}",
+        f"handle_pay_{clean_key}",
+        f"process_{clean_key}",
+        'sub_payment_handler',
+        'handle_payment',
+        'process_payment'
     ]
 
     for func_name in possible_names:
