@@ -2518,7 +2518,7 @@ async def sub_reject(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.answer("❌ الطلب غير موجود أو تمت معالجته مسبقاً", show_alert=True)
         return
 
-   user_id, uname, name, plan_key = req
+    user_id, uname, name, plan_key = req
     c_main.execute("UPDATE subscription_requests SET status='rejected' WHERE id=?", (req_id,))
     conn_main.commit()
 
@@ -2541,7 +2541,6 @@ async def sub_reject(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     except Exception as e:
         logger.error(f"{e} :خطأ في إرسال إشعار الرفض")
-
 
 async def sub_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """رجوع من قائمة الاشتراكات"""
