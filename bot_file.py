@@ -8183,14 +8183,16 @@ async def sdk_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 def main():
     app = Application.builder().token(BOT_TOKEN).build()
 
-    # 1. تسجيل جميع قوائم المحادثات والأدمن
+    # 1. تسجيل أمر /start الرئيسي (هذا هو السطر المضاف)
+    app.add_handler(CommandHandler("start", start))
+
+    # 2. تسجيل باقي القوائم والمحادثات
     if 'admin_add_game_conv' in globals(): app.add_handler(admin_add_game_conv)
     if 'admin_delete_game_conv' in globals(): app.add_handler(admin_delete_game_conv)
     if 'admin_add_event_conv' in globals(): app.add_handler(admin_add_event_conv)
     if 'admin_delete_event_conv' in globals(): app.add_handler(admin_delete_event_conv)
     if 'cred_save_conv' in globals(): app.add_handler(cred_save_conv)
     
-    # 2. تسجيل معالج الرسائل
     if 'admin_pm_receive_text' in globals():
         app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, admin_pm_receive_text))
 
