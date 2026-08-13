@@ -8178,7 +8178,7 @@ async def sdk_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # ====================================================
-# المعالج الشامل الذكي المحدث (يشمل الاشتراكات والشراء)
+# المعالج الشامل الذكي المحدث النهائي (ربط باقات الاشتراك والدفع)
 # ====================================================
 async def global_callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -8192,7 +8192,23 @@ async def global_callback_handler(update: Update, context: ContextTypes.DEFAULT_
 
     data = query.data
 
-    # 1. التعامل مع زر "رجوع" والعودة للقائمة الرئيسية
+    # 1. معالجة اختيار باقة الاشتراك (شهرية / أسبوعية / يومية)
+    if data.startswith("sub_select_"):
+        if 'sub_select_plan' in globals() and callable(globals()['sub_select_plan']):
+            try:
+                return await globals()['sub_select_plan'](update, context)
+            except Exception as e:
+                print(f"[DEBUG] Error executing sub_select_plan: {e}", flush=True)
+
+    # 2. معالجة زر الرجوع داخل قائمة الاشتراك (sub_back)
+    if data == "sub_back":
+        if 'sub_plans' in globals() and callable(globals()['sub_plans']):
+            try:
+                return await globals()['sub_plans'](update, context)
+            except Exception as e:
+                print(f"[DEBUG] Error executing sub_plans: {e}", flush=True)
+
+    # 3. معالجة زر "رجوع" للقائمة الرئيسية
     if data in ["main", "back", "home"]:
         for main_func in ['main_menu', 'show_main_menu', 'start_menu', 'clean_start', 'start']:
             if main_func in globals() and callable(globals()[main_func]):
@@ -8201,12 +8217,11 @@ async def global_callback_handler(update: Update, context: ContextTypes.DEFAULT_
                 except Exception as e:
                     print(f"[DEBUG] Error going back to main: {e}", flush=True)
 
-    # 2. معالجة أزرار باقات الاشتراك والشراء (sub_ / buy_ / plan_)
-    if any(data.startswith(prefix) for prefix in ["sub", "buy", "plan", "pay"]):
+    # 4. معالجة أي أزرار أخرى متعلقة بالاشتراك والدفع
+    if any(data.startswith(prefix) for prefix in ["sub_", "buy_", "plan_", "pay_"]):
         sub_funcs = [
-            'buy_subscription', 'handle_subscription', 'sub_callback', 
-            'process_subscription', 'buy_plan', 'sub_plans', 'handle_buy',
-            'payment_handler', 'subscription_handler', 'subscribe_menu'
+            'sub_select_plan', 'sub_plans', 'buy_subscription', 'handle_subscription',
+            'sub_callback', 'process_subscription', 'buy_plan', 'handle_buy'
         ]
         for func_name in sub_funcs:
             if func_name in globals() and callable(globals()[func_name]):
@@ -8215,15 +8230,9 @@ async def global_callback_handler(update: Update, context: ContextTypes.DEFAULT_
                 except Exception as e:
                     print(f"[DEBUG] Error executing {func_name}: {e}", flush=True)
 
-    # 3. البحث التلقائي عن الدالة المطابقة للزر المضغوط
+    # 5. البحث التلقائي العام عن أي دالة مطابقة
     possible_names = [
-        data,
-        f"{data}_menu",
-        f"{data}_handler",
-        f"handle_{data}",
-        f"{data}_cmd",
-        f"buy_{data}",
-        f"sub_{data}"
+        data, f"{data}_menu", f"{data}_handler", f"handle_{data}", f"{data}_cmd"
     ]
 
     for func_name in possible_names:
@@ -8234,7 +8243,6 @@ async def global_callback_handler(update: Update, context: ContextTypes.DEFAULT_
                 print(f"[DEBUG] Error executing {func_name}: {e}", flush=True)
 
     print(f"[DEBUG] Unhandled button data: '{data}'", flush=True)
-
 # ====================================================
 # 2. دالة التشغيل الرئيسية
 # ====================================================
