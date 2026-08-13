@@ -8183,10 +8183,21 @@ async def sdk_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 def main():
     app = Application.builder().token(BOT_TOKEN).build()
 
-    # 1. تسجيل أمر /start الرئيسي (هذا هو السطر المضاف)
+    # 1. تسجيل أمر /start
     app.add_handler(CommandHandler("start", start))
 
-    # 2. تسجيل باقي القوائم والمحادثات
+    # 2. تسجيل معالجات الأزرار والقوائم (كي تعمل عند الضغط عليها)
+    if 'jumper_farm_menu' in globals():
+        app.add_handler(CallbackQueryHandler(jumper_farm_menu, pattern="^jumper_farm"))
+    if 'user_profile_menu' in globals():
+        app.add_handler(CallbackQueryHandler(user_profile_menu, pattern="^user_profile"))
+
+    # معالج عام لأي أزرار فرعية أخرى
+    if 'handle_callback' in globals(): app.add_handler(CallbackQueryHandler(handle_callback))
+    elif 'button_handler' in globals(): app.add_handler(CallbackQueryHandler(button_handler))
+    elif 'callback_handler' in globals(): app.add_handler(CallbackQueryHandler(callback_handler))
+
+    # 3. تسجيل محادثات الأدمن
     if 'admin_add_game_conv' in globals(): app.add_handler(admin_add_game_conv)
     if 'admin_delete_game_conv' in globals(): app.add_handler(admin_delete_game_conv)
     if 'admin_add_event_conv' in globals(): app.add_handler(admin_add_event_conv)
@@ -8196,7 +8207,7 @@ def main():
     if 'admin_pm_receive_text' in globals():
         app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, admin_pm_receive_text))
 
-    # 3. تسجيل أمر SDK الجديد
+    # 4. تسجيل أمر /sdk الجديد
     app.add_handler(CommandHandler("sdk", sdk_cmd))
 
     print("=" * 60, flush=True)
