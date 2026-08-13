@@ -2478,8 +2478,7 @@ async def sub_approve(update: Update, context: ContextTypes.DEFAULT_TYPE):
   # تعديل رسالة الأدمن وإخفاء الأزرار فوراً عند القبول
     try:
         await query.edit_message_text(
-            text=query.message.text + f"\n\n🟢 <b>[ تم قبول الطلب وتفعيل الاشتراك بنجاح ✅ ]</b>",
-            parse_mode="HTML",
+            text=query.message.text + "\n\n🟢 [ تم قبول الطلب وتفعيل الاشتراك بنجاح ]",
             reply_markup=None
         )
     except Exception as e:
@@ -2524,12 +2523,12 @@ async def sub_reject(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn_main.commit()
 
     try:
-        await query.edit_message_caption(
-            caption=query.message.caption + f"\n\n❌ *تم الرفض بواسطة:* @{query.from_user.username or query.from_user.id}",
-            parse_mode="Markdown"
+       await query.edit_message_text(
+           text=query.message.text + "\n\n❌ [ تم رفض هذا الطلب ]",
+           reply_markup=None
         )
     except Exception:
-        pass
+    pass
 
     try:
         await query.get_bot().send_message(
@@ -8113,8 +8112,8 @@ def main():
     app.add_handler(CallbackQueryHandler(sub_select_plan, pattern="^sub_select_(monthly|weekly|daily)$"))
     app.add_handler(CallbackQueryHandler(sub_select_payment, pattern="^sub_pay_"))
     app.add_handler(CallbackQueryHandler(sub_back, pattern="^sub_back$"))
-    app.add_handler(CallbackQueryHandler(sub_approve, pattern="^sub_approve_\\d+$"))
-    app.add_handler(CallbackQueryHandler(sub_reject, pattern="^sub_reject_\\d+$"))
+    app.add_handler(CallbackQueryHandler(sub_approve, pattern="^sub_approve_"))
+    app.add_handler(CallbackQueryHandler(sub_reject, pattern="^sub_reject_"))
 
     # ⭐ معالجات إدارة طرق الدفع (لوحة الأدمن)
     app.add_handler(CallbackQueryHandler(admin_payment_methods, pattern="^admin_payment_methods$"))
@@ -8263,6 +8262,10 @@ def main():
         app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, sub_receive_proof))
     if 'admin_pm_receive_text' in globals():
         app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, admin_pm_receive_text))
+    if 'sub_approve' in globals():
+        app.add_handler(CallbackQueryHandler(sub_approve, pattern="^sub_approve_"))
+    if 'sub_reject' in globals():
+        app.add_handler(CallbackQueryHandler(sub_reject, pattern="^sub_reject_"))    
 
     print("=" * 60, flush=True)
     print(" Zeus Jumper Bot - شغال بنجاح 🚀", flush=True)
